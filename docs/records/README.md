@@ -11,6 +11,8 @@
 
 规范与强约束见：`docs/06_协作纪录与技能提炼规范.md`
 
+**完整示例**：[EXAMPLE-record.md](EXAMPLE-record.md)（照着它写；示例文件本身不要当作自己的纪录提交）
+
 ## 命名示例
 
 - `2026-11-05-zhangsan-montgomery-modmul.md`
