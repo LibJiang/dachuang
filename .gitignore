@@ -1,0 +1,50 @@
+# 仿真生成物
+*.vvp
+*.vcd
+*.fst
+*.wlf
+*.lxt
+*.lxt2
+obj_dir/
+simv
+build/
+
+# 编译中间产物
+*.o
+*.d
+
+# Vivado / XSim
+*.jou
+*.log
+*.str
+*.pb
+*.bit
+*.xpr
+*.dcp
+*.mcs
+*.prm
+*.ltx
+*.rpt
+*.rpx
+*.twr
+*.twx
+.Xil/
+xsim.dir/
+.vivado/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.srcs/
+*.gen/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
