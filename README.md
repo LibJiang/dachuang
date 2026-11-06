@@ -145,13 +145,15 @@ flowchart LR
 | 角色 | 负责 | 主要交付 | 依赖 |
 |:---|:---|:---|:---|
 | **A 算法与软件基线** | spec、官方参考实现、KAT、C/C++ 黄金、SHAKE/采样/RS、协同仿真 harness | `models/kem/`、`data/vectors/`、KAT 日志 | 无 |
-| **B 稀疏乘法与存储** | `sparse_qc_mult`、dense 基线、循环移位/折叠、BRAM banking、LANES 设计空间 | RTL、tb、综合/Pareto | A 的黄金与向量 |
+| **B 稀疏乘法与存储** | `sparse_qc_mult`、dense 基线、循环移位/折叠、BRAM banking、LANES 设计空间；**兼任 Vivado 平台 owner** | RTL、tb、综合/Pareto、xsim 回归日志 | A 的黄金与向量 |
 | **C FHT 与 KEM 数据通路** | `rm_fht128`、重复合并、KEM 控制 FSM、AXI/MMIO、系统集成 | RTL、tb、协同仿真 | A/B 的接口 |
 | **D 验证与评测** | testbench 框架、随机向量、回归、xsim CI、PPA、报告、查新/原创性 | 回归套件、证据、报告、差异表 | 全员 |
 
 - 每周一次集成：A 出向量 → B/C 出 RTL → D 跑回归 → 更新 `docs/records/`；
 - 接口以 `docs/contracts/` 为准，冻结后改动必须同步；
-- 人少时可合并：A+D、B+C。
+- 人少时可合并：A+D、B+C；
+- **当前只有一台机器有 Vivado**：B 兼任 Vivado 平台 owner，周五统一跑 xsim + OOC 综合；
+  其他人用 iverilog/Verilator 做本地快速检查，最终以 B 的 xsim/综合日志为准。
 
 详细分工与周节奏见 [docs/10_团队分工与国家级指标.md](docs/10_团队分工与国家级指标.md)。
 
