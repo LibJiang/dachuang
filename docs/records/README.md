@@ -15,17 +15,18 @@
 
 ## 命名示例
 
-- `2026-11-05-zhangsan-montgomery-modmul.md`
+- `2026-11-05-zhangsan-hqc-sparse-mult.md`
 - `2026-11-06-lisi-git-pr-flow.md`
-- `2026-11-08-wangwu-ntt-butterfly.md`
+- `2026-11-08-wangwu-hqc-rm-fht.md`
 
 ## 索引
 
 > 新增纪录后，在上面登记一行。每两周据此做一次 skill 提炼。
 
-| 日期 | 成员 | 主题 | 关联选题 | 纪录 | 高质量 |
+| 日期 | 成员 | 主题 | 关联阶段 | 纪录 | 高质量 |
 |---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 2026-11-06 | jianglibo | HQC 初始架构与仓库基线 | A/B/C/D | [纪录](2026-11-06-jianglibo-hqc-initial-architecture.md) | 待复核 |
+| 2026-11-06 | jianglibo | HQC 基线与稀疏乘法 baseline | A/B1 | [纪录](2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md) | 待复核 |
 
 ## 提炼记录
 

@@ -25,7 +25,7 @@ const marked = markedLib.parse ? markedLib : markedLib.marked;
 const GROUPS = [
   {
     title: '开始',
-    files: ['README.md'],
+    files: ['README.md', 'plan.md', 'AGENTS.md'],
   },
   {
     title: '新手必读',
@@ -36,12 +36,25 @@ const GROUPS = [
     ],
   },
   {
-    title: '方向与选题',
+    title: '方向与技术路线',
     files: [
       'docs/01_田静老师资料与研究方向.md',
-      'docs/02_大创推荐选题.md',
+      'docs/08_HQC技术路线.md',
+      'docs/09_工程约束与验证规范.md',
+      'docs/10_团队分工与国家级指标.md',
+      'docs/11_组内基线与差异表.md',
       'docs/03_前置知识与学习路线.md',
       'docs/05_前置知识补全_从数电到Verilog实战.md',
+    ],
+  },
+  {
+    title: '接口契约',
+    files: [
+      'docs/contracts/README.md',
+      'docs/contracts/hqc_kem_v0.md',
+      'docs/contracts/sparse_qc_mult_v0.md',
+      'docs/contracts/rm_decoder_v0.md',
+      'docs/contracts/axi_mmio_v0.md',
     ],
   },
   {

@@ -7,11 +7,27 @@
 *.lxt2
 obj_dir/
 simv
-build/
 
-# 编译中间产物
+# 构建产物（保留 build/constraints 与 build/scripts）
+build/*
+!build/constraints/
+!build/constraints/**
+!build/scripts/
+!build/scripts/**
+!build/.gitkeep
+
+# C/C++ 编译中间产物
 *.o
 *.d
+*.obj
+*.exe
+*.out
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+*.ninja
+.ninja_deps
+.ninja_log
 
 # Vivado / XSim
 *.jou
@@ -28,6 +44,9 @@ build/
 *.rpx
 *.twr
 *.twx
+*.wdb
+*.wcfg
+*.xsim
 .Xil/
 xsim.dir/
 .vivado/
@@ -38,6 +57,11 @@ xsim.dir/
 *.sim/
 *.srcs/
 *.gen/
+*.backup.*
+
+# 但数据目录里的原始日志/报告要入库（覆盖上面的 *.log / *.rpt）
+!data/logs/**/*.log
+!data/evidence/**/*.rpt
 
 # Python
 __pycache__/
@@ -48,3 +72,4 @@ venv/
 # 系统与编辑器
 .DS_Store
 Thumbs.db
+*.swp

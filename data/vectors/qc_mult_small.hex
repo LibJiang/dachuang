@@ -1,0 +1,7 @@
+# n dense_hex pos_list
+# bit i = coefficient of X^i; pos 0..n-1; output in data/golden/qc_mult_small.expected
+8 4D 1,4
+8 01 0,1,7
+16 0001 0
+16 0001 15
+64 1 0,1,63
