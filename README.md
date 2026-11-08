@@ -272,4 +272,4 @@ make -C models/golden
 - [ ] M6：FPGA PPA
 - [ ] M7：ASIC 综合（条件）
 
-> 旧的“PS+PL 混合、仿真优先”实现保存在本地分支 **`hqc-baseline`**（未 push）。
+> 旧的“PS+PL 混合、仿真优先”实现保存在分支 **`hqc-baseline`**（已 push）。
