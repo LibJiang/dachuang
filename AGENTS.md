@@ -1,6 +1,6 @@
 # AGENTS.md —— 每次开工前必读（硬性）
 
-> 适用：本仓库所有分支。项目方向：**HQC KEM 硬件加速（PYNQ-Z2 / Zynq-7020）**。
+> 适用：本仓库所有分支。项目方向：**HQC KEM 的完整 RTL 实现（FPGA/ASIC）**。
 > 目的：杜绝四类事故——① 用临时文件验证、结论不可复现；② 把“未实现 / 未验证”说成“已完成”；
 > ③ 把复现写成原创；④ 跨目录乱改、破坏接口契约。
 > **未完成下面「开工三件事」，不得开始任何编码或改动。**
@@ -9,8 +9,9 @@
 
 ## 一、开工三件事（缺一不可）
 
-1. **读约束**：完整阅读 `plan.md`、`docs/08_HQC技术路线.md`、`docs/09_工程约束与验证规范.md`、
-   `docs/10_团队分工与国家级指标.md`，以及本次要改模块对应的 `docs/contracts/*.md`。
+1. **读约束**：完整阅读 `plan.md`、`docs/12_FPGA_ASIC路线.md`、`docs/11_组内基线与差异表.md`、
+   `docs/08_HQC技术路线.md`、`docs/09_工程约束与验证规范.md`、`docs/10_团队分工与国家级指标.md`，
+   以及本次要改模块对应的 `docs/contracts/*.md`。
 2. **核实现状**：先跑
    ```bash
    git rev-parse --abbrev-ref HEAD
@@ -39,8 +40,9 @@
 - **禁止**用 `/tmp`、桌面临时文件、聊天里的代码作为“已验证”依据。
 - 任何“已验证”的结论，必须能由**仓库内命令**一键复现：
   - C/C++ 黄金：`make -C models/golden && ./build/golden/qc_mult_ref --selftest`
+  - 官方 KAT：`bash models/kem/harness/run.sh`
   - RTL 仿真：`bash sim/run.sh rtl <tb_top>` 或 Vivado xsim 脚本
-  - 完整 KEM：官方 KAT 脚本 + `data/logs/` 原始输出
+  - 完整 RTL KAT：系统仿真 + `data/logs/` 原始输出
 - 不允许声称“已验证”却拿不出日志 / 波形 / 报告路径。
 
 ### 3. 交付纪律
@@ -63,12 +65,15 @@
 - 时钟/复位：同步设计；异步复位统一低有效 `rst_n`；跨时钟域必须显式同步器并写注释。
 - 禁止在综合 RTL 中使用 `#delay`、`initial` 赋初值（FPGA 可用 `initial` 初始化 BRAM 的场景需单独评审）。
 - 位宽必须显式；禁止依赖隐式截断/扩展；有符号运算统一用 `$signed` / `signed` 并写注释。
+- **ASIC 导向**：核心 RTL 不使用 FPGA 原语（BRAM IP、DSP48、MMCM 等）；
+  FPGA 专用封装放 `src/soc/` 或 `board/`，核心模块保持可综合的通用 RTL。
 
 ### 5. HQC 专项约束
 
-- **仿真优先**：先完成 C/C++ + xsim + 综合的完整 KEM；上板最后再定，不作为 V0 硬闸门。
-- **“完整”的判定**：官方 KAT 100/100 逐字节通过 + ≥10 组端到端协同仿真通过 + 0 mismatch。
-- **参数集**：V0 只做 HQC-128；HQC-192/256 属于 C 阶段，V0 不得为此牺牲正确性。
+- **先完整 RTL 协议，再 FPGA/ASIC**：上板是可选加分，ASIC 是条件阶段；完整 RTL + KAT 是 V0 硬闸门。
+- **“完整”的判定**：全 RTL KeyGen/Encaps/Decaps；官方 KAT 100/100；系统仿真 0 mismatch。
+- **参数集**：V0 只做 HQC-128（官方 HQC-1）；HQC-192/256 后续，不得为此牺牲正确性。
+- **参考实现只读**：`third_party/hqc/` 是官方 public domain 代码，不得改算法；本地修改用 patch 记录。
 - **数据表示**：稠密多项式按 bit 存储，`bit i = X^i` 的系数；稀疏多项式存位置列表（升序、无重复）。
   详细定义见 `docs/contracts/sparse_qc_mult_v0.md`。
 - **KAT 字节级一致**：PRNG、采样、编码、填充、字节序必须使用官方参考实现；**禁止自行发明采样器**。
@@ -84,7 +89,7 @@
 - **组内 SOCC 2023 已经做了稀疏乘法、RM FHT、RS ePIBM、完整 HQC-128 KEM**；
   这四项不得当本项目原创。差异表见 `docs/11_组内基线与差异表.md`。
 - 不得写“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
-- 候选增量应落在：RISC-V 集成、参数化设计空间、混合软硬协同、协同仿真、参数化/安全。
+- 候选增量应落在：**完整 RTL + ASIC 评估**、FPGA/ASIC 设计空间、开源可复现、RISC-V 集成（可选）、恒定时间（可选）。
 
 ---
 
@@ -93,15 +98,16 @@
 | 用途 | 工具 | 入口 |
 |:---|:---|:---|
 | 软件黄金模型 | GCC / Clang（C11） | `make -C models/golden` |
-| 完整 KEM 软件基线 | 官方 HQC 参考实现（C） | `models/kem/`（A1 补齐） |
+| 官方参考实现 / KAT | 官方 HQC C 代码（public domain） | `third_party/hqc/` + `bash models/kem/harness/run.sh` |
 | RTL 仿真 | **Vivado xsim** | `sim/scripts/run_xsim.tcl` |
 | 快速 lint（可选） | Icarus Verilog | `bash sim/run.sh lint` |
-| 综合 / 实现 | Vivado 2026.1 | `build/` + `build/constraints/` |
-| 上板（可选） | PYNQ-Z2 | `board/`（最后再定） |
+| FPGA 综合 / 实现 | Vivado 2026.1 | `build/` + `build/constraints/` |
+| ASIC 综合（条件） | Cadence/Synopsys/OpenROAD（待确认） | `asic/` |
+| 上板（可选） | PYNQ-Z2 | `board/` |
 
 - 不以 Icarus 替代 xsim 作为最终 RTL 验证依据；Icarus 只用于快速 lint。
-- 所有仿真日志放 `data/logs/`，综合/时序报告放 `data/evidence/`。
-- 上板不是 V0 闸门；先完成 C/C++ + xsim + 综合的完整 KEM。
+- 所有仿真日志放 `data/logs/`，FPGA/ASIC 报告放 `data/evidence/`。
+- 先完成完整 RTL + KAT；上板/ASIC 是后置/条件阶段。
 
 ---
 
@@ -109,8 +115,11 @@
 
 - 主计划：`plan.md`
 - HQC 技术路线：`docs/08_HQC技术路线.md`
+- 组内基线与差异：`docs/11_组内基线与差异表.md`
+- **FPGA/ASIC 路线**：`docs/12_FPGA_ASIC路线.md`
 - 工程约束：`docs/09_工程约束与验证规范.md`
 - 分工与指标：`docs/10_团队分工与国家级指标.md`
 - 接口契约：`docs/contracts/README.md`
+- 官方参考实现：`third_party/hqc/VENDORED.md`
 - 协作纪录：`docs/records/README.md` + `TEMPLATE.md`
 - 阅读顺序：`docs/00_新队友阅读顺序.md`

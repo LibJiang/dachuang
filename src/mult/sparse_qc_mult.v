@@ -25,43 +25,61 @@ module sparse_qc_mult #(
     output reg  [63:0] prod_rdata
 );
 
-    localparam integer WORDS = (N + 63) / 64;
+    localparam integer WORDS     = (N + 63) / 64;
+    localparam integer ACC_WORDS = 2 * WORDS;
+    localparam integer QN        = N / 64;
+    localparam integer SN        = N % 64;
 
-    localparam [1:0] S_IDLE    = 2'd0;
-    localparam [1:0] S_CLEAR   = 2'd1;
-    localparam [1:0] S_COMPUTE = 2'd2;
-    localparam [1:0] S_DONE    = 2'd3;
+    localparam [63:0] LAST_MASK = (SN == 0)
+                                ? 64'hFFFFFFFFFFFFFFFF
+                                : ((64'd1 << SN) - 64'd1);
+
+    localparam [2:0] S_IDLE    = 3'd0;
+    localparam [2:0] S_CLEAR   = 3'd1;
+    localparam [2:0] S_COMPUTE = 3'd2;
+    localparam [2:0] S_FOLD    = 3'd3;
+    localparam [2:0] S_DONE    = 3'd4;
 
     reg [63:0] dense_mem [0:WORDS-1];
+    reg [63:0] acc_mem   [0:ACC_WORDS-1];
     reg [63:0] prod_mem  [0:WORDS-1];
     reg [15:0] pos_mem   [0:W-1];
 
-    reg [1:0]  state;
+    reg [2:0]  state;
     integer    clear_idx;
     integer    pos_idx;
-    integer    word_idx;
-    integer    i;
+    integer    src_idx;
+    integer    fold_idx;
+    reg        half;
 
     reg [15:0] p;
     reg [15:0] q;
     reg [5:0]  s;
-    integer    a;
-    integer    prev;
-    reg [63:0] shifted;
+    integer    dest;
+    reg [63:0] shift_lo;
+    reg [63:0] shift_hi;
+    reg [63:0] folded;
 
     always @* begin
         p = pos_mem[pos_idx];
         q = p >> 6;
         s = p[5:0];
-        a = word_idx - q;
-        if (a < 0) begin
-            a = a + WORDS;
-        end
-        prev = (a == 0) ? (WORDS - 1) : (a - 1);
+        dest = src_idx + q;
         if (s == 6'd0) begin
-            shifted = dense_mem[a];
+            shift_lo = dense_mem[src_idx];
+            shift_hi = 64'd0;
         end else begin
-            shifted = (dense_mem[a] << s) | (dense_mem[prev] >> (64 - s));
+            shift_lo = dense_mem[src_idx] << s;
+            shift_hi = dense_mem[src_idx] >> (64 - s);
+        end
+    end
+
+    always @* begin
+        if (SN == 0) begin
+            folded = acc_mem[fold_idx + QN];
+        end else begin
+            folded = (acc_mem[fold_idx + QN] >> SN)
+                   | (acc_mem[fold_idx + QN + 1] << (64 - SN));
         end
     end
 
@@ -77,10 +95,9 @@ module sparse_qc_mult #(
             error     <= 1'b0;
             clear_idx <= 0;
             pos_idx   <= 0;
-            word_idx  <= 0;
-            for (i = 0; i < WORDS; i = i + 1) begin
-                prod_mem[i] <= 64'd0;
-            end
+            src_idx   <= 0;
+            fold_idx  <= 0;
+            half      <= 1'b0;
         end else begin
             done <= 1'b0;
 
@@ -98,14 +115,16 @@ module sparse_qc_mult #(
                         busy      <= 1'b1;
                         clear_idx <= 0;
                         pos_idx   <= 0;
-                        word_idx  <= 0;
+                        src_idx   <= 0;
+                        fold_idx  <= 0;
+                        half      <= 1'b0;
                         state     <= S_CLEAR;
                     end
                 end
 
                 S_CLEAR: begin
-                    prod_mem[clear_idx] <= 64'd0;
-                    if (clear_idx == (WORDS - 1)) begin
+                    acc_mem[clear_idx] <= 64'd0;
+                    if (clear_idx == (ACC_WORDS - 1)) begin
                         clear_idx <= 0;
                         state     <= S_COMPUTE;
                     end else begin
@@ -114,16 +133,38 @@ module sparse_qc_mult #(
                 end
 
                 S_COMPUTE: begin
-                    prod_mem[word_idx] <= prod_mem[word_idx] ^ shifted;
-                    if (word_idx == (WORDS - 1)) begin
-                        word_idx <= 0;
-                        if (pos_idx == (W - 1)) begin
-                            state <= S_DONE;
-                        end else begin
-                            pos_idx <= pos_idx + 1;
+                    if (half == 1'b0) begin
+                        acc_mem[dest] <= acc_mem[dest] ^ shift_lo;
+                        if (s != 6'd0) begin
+                            half <= 1'b1;
                         end
                     end else begin
-                        word_idx <= word_idx + 1;
+                        acc_mem[dest + 1] <= acc_mem[dest + 1] ^ shift_hi;
+                        half <= 1'b0;
+                    end
+
+                    if ((half == 1'b1) || (s == 6'd0)) begin
+                        if (src_idx == (WORDS - 1)) begin
+                            src_idx <= 0;
+                            if (pos_idx == (W - 1)) begin
+                                state <= S_FOLD;
+                            end else begin
+                                pos_idx <= pos_idx + 1;
+                            end
+                        end else begin
+                            src_idx <= src_idx + 1;
+                        end
+                    end
+                end
+
+                S_FOLD: begin
+                    if (fold_idx == (WORDS - 1)) begin
+                        prod_mem[fold_idx] <= (acc_mem[fold_idx] ^ folded) & LAST_MASK;
+                        fold_idx <= 0;
+                        state    <= S_DONE;
+                    end else begin
+                        prod_mem[fold_idx] <= acc_mem[fold_idx] ^ folded;
+                        fold_idx <= fold_idx + 1;
                     end
                 end
 

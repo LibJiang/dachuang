@@ -1,52 +1,49 @@
-# hqc_kem_v0 —— 完整 HQC KEM 契约（草案）
+# hqc_kem_v0 —— 完整 RTL HQC KEM 契约（草案）
 
-> 状态：**草案**，A 阶段结束前冻结。
-> 目标：实现 HQC-128 的完整 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝），
-> 官方 KAT 逐字节通过；B 阶段用 RTL 替换稀疏乘法后，KAT 仍逐字节通过。
+> 状态：**草案**，V0 架构冻结前完成。
+> 目标：HQC-128 的 **全 RTL** KeyGen / Encaps / Decaps + FO + 隐式拒绝；
+> 官方 KAT 100/100；系统仿真 0 mismatch。
 >
-> **仿真优先**：先完成 C/C++ + xsim + 综合；上板最后再定，不作为 V0 闸门。
-> 国家级指标见 `docs/10_团队分工与国家级指标.md`。
+> 主题：完整 RTL → FPGA 原型 + ASIC 综合评估（ASIC 条件阶段）。
+> 参考实现：`third_party/hqc/`（public domain，commit `06567cc`）。
 
 ---
 
-## 1. API
+## 1. API（RTL 侧抽象）
 
-```c
-int hqc_keygen(uint8_t *pk, uint8_t *sk);
-int hqc_encaps(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
-int hqc_decaps(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+```text
+keygen  : start_keygen  -> pk[2241B], sk[32B]
+encaps  : start_encaps(pk) -> ct[4433B], ss[32B]
+decaps  : start_decaps(sk, ct) -> ss[32B]
 ```
 
-- 返回 0 成功，非 0 失败；
-- 缓冲区长度由参数集决定，**以官方参考实现为准**；
-- V0 只支持 HQC-128；参数集在编译期选择。
+- 字节长度以官方 HQC-1 头文件为准；
+- 所有模块在 PL 内；Host/Testbench 只负责灌 KAT、读结果；
+- 不依赖 PS 做 SHAKE/RS/采样（与旧混合方案不同）。
 
 ---
 
-## 2. 软硬划分（V0）
+## 2. 全 RTL 模块
 
-| 步骤 | 放置 | 说明 |
+| 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| 种子扩展 / SHAKE256 | PS | 官方 C 实现 |
-| 固定重量采样 | PS | 官方 C 实现，禁止自研 |
-| `h·y` / `h·r2` / `s·r2` / `u·y` | **PL** | 稀疏乘法 |
-| 向量 XOR / 循环折叠 | PL 或 PS | 以实测为准 |
-| `Encode(m)` / `Decode` | PS + PL | RS 在 PS；RM 在 PL（C 阶段） |
-| FO 重加密 | PS 调度 + PL 乘法 | 两次稀疏乘法 |
-| 常数时间比较 | PS | 固定长度逐字节比较 |
-| 隐式拒绝 | PS | 失败走 `SHAKE(σ || c)` |
-
-**V0 允许**：RM 解码先放 PS 官方实现，PL 只做稀疏乘法；B 阶段闸门只要求“乘法替换后 KAT 全过”。
+| `sha3/keccak` | SHAKE256、XOF、PRNG | A |
+| `sampler` | 固定重量采样（w/w_r/w_e） | A |
+| `sparse_qc_mult` | dense×sparse 准循环乘法 | B |
+| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C |
+| `rm_codec` | RM 编码 + FHT + 重复合并 | C |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝 | A/C |
+| `axi_mmio` | 寄存器/BRAM/DMA | C |
 
 ---
 
 ## 3. 数据格式
 
-- 所有多项式：n bit，`bit i = X^i` 系数；字节序以官方参考实现为准；
-- 私钥 `x, y`：位置列表（升序、无重复）或稠密 bit 向量，二者转换必须有无损对拍；
-- 公钥 `h, s`、密文 `u, v`：稠密 bit 向量；
-- `m`：k 字节；编码后的码字长度由 RS/RM/重复码决定；
-- **KAT 的每一个字节都必须与官方一致**；不得自定义填充。
+- 稠密多项式：n bit，`bit i = X^i` 系数；
+- 稀疏多项式：位置列表（升序、无重复）；
+- 字节序/填充/KAT：**以官方参考实现为准**；
+- `sk` 是 32 B master seed；keygen 必须能从 `sk` 确定性重建 `pk`；
+- `ct` 4433 B，`ss` 32 B（HQC-1）。
 
 ---
 
@@ -54,42 +51,43 @@ int hqc_decaps(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 | 测试 | 方法 | 通过标准 |
 |:---|:---|:---|
-| 官方 KAT | `PQCgenKAT_kem` 向量 | `pk/sk/ct/ss` 逐字节一致 |
-| 往返 | keygen → encaps → decaps | `ss` 一致 |
-| 负向 | 篡改 ct 的每个字节 | 隐式拒绝，`ss` 不等于正常值 |
-| 常数时间 | 统计比较耗时 | 不随首个不同字节位置变化（V0 至少人工审查） |
-| 回归 | 每次 RTL 改动后重跑 | 全过 |
+| keygen | 官方 KAT `sk` → `pk/sk` | 100/100 |
+| decaps | 官方 KAT `sk/ct` → `ss` | 100/100 |
+| encaps | 需要 NIST DRBG/OpenSSL | 待补 |
+| 系统仿真 | 完整 RTL + KAT | 100/100，0 mismatch |
+| 负向 | 篡改 ct | 隐式拒绝 |
+| 常数时间 | 比较耗时 | V0 人工审查；V1 形式化 |
+
+当前 A1 已通过 keygen + decaps 100/100（见 `models/kem/harness`）。
 
 ---
 
-## 5. 时序与性能口径
+## 5. 性能/PPA 口径
 
 | 指标 | 口径 |
 |:---|:---|
-| KeyGen 延迟 | PS 调用开始 → 返回，含 PL 乘法 |
-| Encaps 延迟 | 含两次稀疏乘法 + 编码 + SHAKE |
-| Decaps 延迟 | 含一次解密乘法 + 解码 + 重加密（两次乘法） |
-| 加速比 | 同输入、同参数，对比 ARM 软件 / 官方参考 |
-| 资源 | LUT/FF/BRAM/DSP，Vivado 报告 |
-| Fmax | 实现后时序报告 |
+| FPGA | LUT/FF/BRAM/DSP/Fmax/cycles；Vivado 综合/实现 |
+| ASIC（条件） | area/power/fmax；综合，不跑 P&R |
+| 延迟 | KeyGen/Encaps/Decaps 的 cycles 与 ms |
+| 对比 | SOCC 2023（FPGA-only）作为基线；不承诺超过 |
 
-> 所有指标必须注明：仿真 / 综合 / 上板，三者不可混写。
+> 所有指标必须注明：仿真 / FPGA 综合 / ASIC 综合，三者不可混写。
 
 ---
 
 ## 6. 错误处理
 
-- 非法参数集 / 缓冲区空指针 → 返回非 0，不进入硬件；
-- AXI 超时 / `error=1` → 返回非 0，不得返回未初始化密钥；
-- 解密失败 → 必须走隐式拒绝，不得返回错误码给外部区分（FO 要求）。
+- 非法参数/越界 → `error=1`，不进入计算；
+- 解密失败 → 隐式拒绝，不返回错误码给外部区分；
+- AXI 超时 → 返回非 0，不得返回未初始化密钥。
 
 ---
 
 ## 7. 未决问题
 
-- [ ] 官方 HQC 参考实现版本 / spec 版本
-- [ ] KAT 文件来源与校验和
-- [ ] `pk/sk/ct` 的精确字节长度与序列化格式
-- [ ] 隐式拒绝的 `σ` 来源与域分隔字符串
-- [ ] 是否 V0 就把 RM 解码放 PL（建议 B 阶段先 PS）
-- [ ] 参数集切换方式（编译期 / 运行时）
+- [ ] Keccak/SHAKE RTL：自研还是复用公开 IP（许可证）
+- [ ] 采样器：拒绝采样 vs 恒定时间采样
+- [ ] RS 解码：ePIBM vs BM；是否先复用公开 IP
+- [ ] ASIC 工具/PDK/工艺节点
+- [ ] HQC-192/256 是否进 V0（默认不进）
+- [ ] 上板是否作为答辩要求（默认可选）

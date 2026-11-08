@@ -27,6 +27,7 @@
 |---|---|---|---|---|---|
 | 2026-11-06 | jianglibo | HQC 初始架构与仓库基线 | A/B/C/D | [纪录](2026-11-06-jianglibo-hqc-initial-architecture.md) | 待复核 |
 | 2026-11-06 | jianglibo | HQC 基线与稀疏乘法 baseline | A/B1 | [纪录](2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md) | 待复核 |
+| 2026-11-06 | jianglibo | HQC KAT 与主题切换 | A1 | [纪录](2026-11-06-jianglibo-hqc-kat-and-topic-switch.md) | 待复核 |
 
 ## 提炼记录
 

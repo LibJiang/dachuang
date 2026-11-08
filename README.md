@@ -1,161 +1,150 @@
-# HQC-KEM-FPGA：基于 PYNQ-Z2 的 HQC KEM 硬件加速
+# HQC-KEM-FPGA/ASIC：HQC KEM 的完整 RTL 实现
 
 > 南京大学大创项目 · 田静老师课题组方向 · 后量子密码（PQC）· 码密码 HQC
-> **方向状态：已确定（HQC KEM）**
-> **实施策略：先把完整 KEM 在 C/C++ + Vivado xsim + 综合里做通，上板最后再定**
-> 当前阶段：A 软件基线 / M0 启动
+> **主题已切换：完整 RTL 的 HQC KEM 实现 → FPGA 原型 + ASIC 综合评估**
+> 当前状态：A1 官方参考实现/KAT 已跑通（keygen + decaps 100/100）
 
 ---
 
 ## 一、项目一句话
 
-目标不是先点灯，而是先交付一个**完整、可复现、可对拍**的 HQC KEM：
+用 **完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝）：
 
-- **C/C++ 软件仿真**：官方参考实现 + 独立黄金模型 + 官方 KAT；
-- **Vivado xsim 硬件仿真**：稀疏乘法、RM FHT、KEM 数据通路的自检 testbench；
-- **系统级协同仿真**：C 模型调度 + RTL 模块，跑通 KeyGen / Encaps / Decaps；
-- **综合与 PPA**：Vivado 综合/实现报告，给出频率、面积、周期数；
-- **上板**：作为最后的加分项，不作为 V0 的硬闸门。
+- **RTL**：SHAKE256、固定重量采样、RS 编解码、RM FHT、稀疏准循环乘法、KEM 控制、AXI/MMIO；
+- **软件**：官方 HQC 参考实现 + C/C++ 黄金 + KAT，用于逐字节对拍；
+- **仿真**：Vivado xsim 系统级仿真 + 官方 KAT；
+- **FPGA**：Vivado 综合/实现，给出 LUT/FF/BRAM/Fmax/cycles；
+- **ASIC**：条件允许时做综合 + 面积/功耗/频率评估（不跑 P&R、不流片）。
 
-> 导师意见：**先把完整的东西做出来，最后再考虑是否上板。** 本仓库按这个顺序组织。
+> 组内 SOCC 2023 已经做了 **FPGA 完整 HQC-128 KEM**。
+> 我们的差异化不靠“重复造稀疏乘法/完整 KEM”，而靠 **完整 RTL + ASIC 评估 + 设计空间 + 开源可复现**。
 
 ---
 
-## 二、为什么选 HQC
+## 二、为什么换主题
 
-HQC（Hamming Quasi-Cyclic）是 NIST 2025 年选中的第五个后量子 KEM，安全性基于**准循环码的解码困难性**。它和 Kyber 是两条完全不同的技术路线：
+| 旧方案（已保存到 `hqc-baseline` 分支） | 新方案 |
+|:---|:---|
+| PS+PL 混合，C/C++ 做 SHAKE/RS | **完整 RTL**，所有模块上 PL |
+| 仿真优先，上板最后再定 | **FPGA 原型 + ASIC 综合评估** |
+| 稀疏乘法 + 完整 KEM 当主线 | 稀疏乘法/FHT/RS/KEM 是**基线**；ASIC 与设计空间是增量 |
 
-| | Kyber（格密码） | HQC（码密码） |
+组内 SOCC 2023 的边界：
+
+- 已做：稀疏乘法、RM FHT、RS ePIBM、完整 HQC-128 KEM；
+- 结果：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz；
+  KeyGen/Encap/Decap = 0.11 / 0.22 / 0.38 ms（Artix-7 xc7a200t-3）。
+
+**所以**：稀疏乘法、FHT、RS、完整 KEM 都不能当原创；ASIC 评估是更明确的差异点。
+
+---
+
+## 三、范围分层
+
+| 层级 | 内容 | 硬闸门 |
 |:---|:---|:---|
-| 运算域 | $\mathbb{Z}_q$，$q=3329$ | $\mathrm{GF}(2)[X]/(X^n-1)$ |
-| 核心运算 | NTT + 模约减 | 准循环乘法 + RM/RS 解码 |
-| 本项目切入点 | 不适用 | **稀疏结构驱动的乘法器** |
+| **V0 完整 RTL** | HQC-128 全 RTL（SHAKE/采样/RS/RM/乘法/控制） | ✅ |
+| **V0 验证** | 官方 KAT 100/100 + xsim 系统仿真 | ✅ |
+| **V1 FPGA** | Vivado 综合/实现 PPA；可选上板 | 🟡 建议 |
+| **V2 ASIC** | 综合 + area/power/fmax（不跑 P&R） | 🟡 条件 |
+| **V3 ASIC P&R/流片** | DRC/LVS/signoff/MPW | ⬜ 不建议 |
 
-HQC 的密钥与误差向量是**固定重量稀疏**的，因此所有乘法都是 **dense × sparse**，可以按稀疏位置做循环移位再 XOR 累加，把朴素 $O(n^2)$ 降到 $O(wn)$。这是本项目的核心架构洞察。
-
----
-
-## 三、项目边界（仿真优先）
-
-| 层级 | 内容 | V0 必做 |
-|:---|:---|:---|
-| **A 软件基线** | 官方 HQC-128 参考实现 + KAT + C/C++ 黄金 | ✅ |
-| **B 单点加速** | PL 稀疏乘法替换 `vect_mul`，KAT 仍全过 | ✅ |
-| **C 系统扩展** | RM FHT、KEM 数据通路、协同仿真、设计空间 | ✅（仿真/综合） |
-| **D 上板** | PYNQ-Z2 实机演示 | 🟡 最后再定 |
-
-**V0 明确不做**：全 RTL KEM、掩码/侧信道防护、ASIC、应用层协议。
-
-**上板策略**：先把完整 KEM 在 C/C++ + xsim + 综合里跑通；导师确认后再决定是否上板。上板不是立项/结题的硬闸门。
+**V0 不做**：HQC-192/256、掩码/侧信道、MPW、全参数集。
 
 ---
 
-## 四、系统架构
+## 四、系统架构（完整 RTL）
 
 ```mermaid
 flowchart LR
-    CM[C/C++ 参考实现 / 黄金模型<br/>SHAKE、采样、RS、FO、KAT] -->|文件 / DPI-C| TB[系统级 testbench]
-    TB --> CTRL[KEM 控制 FSM]
-    CTRL --> SM[稀疏 QC 乘法器<br/>dense × sparse]
-    CTRL --> RM[RM(1,7) FHT 解码器<br/>+ 重复合并]
-    SM <--> MEM[多项式 BRAM<br/>h,s,u,v,x,y,r1,r2,e]
+    HOST[Testbench / PS<br/>KAT / 配置] -->|AXI4-Lite| CTRL[KEM 控制 FSM]
+    CTRL --> SHAKE[SHAKE256 / Keccak]
+    CTRL --> SAMP[固定重量采样]
+    CTRL --> SM[稀疏 QC 乘法器]
+    CTRL --> RM[RM 编解码 / FHT]
+    CTRL --> RS[RS 编解码 / ePIBM]
+    SHAKE <--> MEM[BRAM]
+    SAMP <--> MEM
+    SM <--> MEM
     RM <--> MEM
-    TB --> CHK[逐字节对拍 / PASS-FAIL]
+    RS <--> MEM
+    CTRL --> REG[状态/结果寄存器]
 ```
 
-职责划分：
+模块与负责人：
 
-| 任务 | V0 放置 | 说明 |
+| 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| SHAKE256 / KDF | C/C++ 参考 | 保证 KAT 一致；V1 可选 RTL Keccak |
-| 固定重量采样 | C/C++ 参考 | 禁止自行发明 |
-| 稀疏乘法 | **RTL** | 核心加速对象 |
-| RM(1,7) 解码 | **RTL** | FHT + 重复合并 |
-| RS 编解码 | C/C++ 参考 | V1 再评估是否下沉 |
-| FO 重加密 / 隐式拒绝 | C/C++ 或 RTL 控制 | 常数时间比较 |
-| 系统调度 | C/C++ testbench / 可选自研 RISC-V | 上板时再替换 |
+| `sha3/keccak` | SHAKE256、XOF、PRNG | A |
+| `sampler` | 固定重量采样（w/w_r/w_e） | A |
+| `sparse_qc_mult` | dense×sparse 准循环乘法 | B |
+| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C |
+| `rm_codec` | RM 编码 + FHT 解码 + 重复合并 | C |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝 | A/C |
+| `axi_mmio` | 寄存器/BRAM/DMA | C |
+| `tb/golden` | KAT、C 黄金、系统仿真、PPA | D |
+
+详细路线见 [docs/12_FPGA_ASIC路线.md](docs/12_FPGA_ASIC路线.md)。
 
 ---
 
-## 五、三步走
+## 五、里程碑
 
-1. **A 基础闭环**：官方 HQC-128 参考实现 → KeyGen / Encaps / Decaps + FO + 隐式拒绝 → 官方 KAT 逐字节通过。
-2. **B 单点加速**：把稀疏乘法搬到 RTL，其余不动；同一批 KAT 仍全过，测出加速比与资源。
-3. **C 系统扩展**：RM FHT 下沉、KEM 数据通路、系统级协同仿真、HQC-192/256、设计空间与 Pareto；上板最后再定。
-
-**硬闸门**：A 不过 KAT 不进 B；B 的 KAT 有 1 个字节不对不进 C；C 的协同仿真不通过不写上板。
+| 里程碑 | 交付 | 验收 |
+|:---|:---|:---|
+| M0 参考/KAT | `third_party/hqc` + `models/kem/harness` | **已完成**：`PASS: 100/100 (pk/sk/ss)` |
+| M1 架构/契约 | 模块接口、数据格式、AXI 映射 | 契约冻结 |
+| M2 稀疏乘法 | N=17669 随机回归 + OOC 综合 | 0 mismatch；PPA |
+| M3 SHAKE/采样 | Keccak、固定重量采样 | 与官方 KAT 对拍 |
+| M4 RS/RM | RS 编解码、FHT、重复合并 | 与官方向量对拍 |
+| M5 KEM Top | 完整 RTL KeyGen/Encaps/Decaps | 系统仿真 100/100 KAT |
+| M6 FPGA PPA | Vivado 综合/实现 | 资源/时序/周期 |
+| M7 ASIC（条件） | 综合 + area/power/fmax | 工具/PDK 可用才做 |
 
 ---
 
-## 六、国家级立项指标（目标）
+## 六、指标
 
-> 以下为**目标值**，不是承诺；最终以 `data/logs/` 与 `data/evidence/` 的仿真/综合实测为准。
-> 口径分三列：仿真（xsim/C）、综合（Vivado）、上板（可选）。不得混写。
+### 6.1 功能
 
-### 6.0 组内基线（SOCC 2023）
+- HQC-128 完整 KEM，**全 RTL**；
+- 官方 KAT **100/100**（先 keygen+decaps，再补 encaps ct）；
+- 系统仿真 100/100；0 mismatch；
+- 负向：篡改 ct → 隐式拒绝。
 
-组内 Chen Li et al. 已经在 **Artix-7 xc7a200t-3** 上完成 HQC-128 完整 KEM：
+### 6.2 FPGA（V1）
 
-| 基线 | 器件 | LUT | FF | BRAM | Fmax | KeyGen / Encap / Decap |
-|:---|:---|:---|:---|:---|:---|:---|
-| SOCC 2023 | xc7a200t-3 | 19,794 | 11,079 | 68 | 178 MHz | 0.11 / 0.22 / 0.38 ms |
+| 指标 | 目标 |
+|:---|:---|
+| 器件 | PYNQ-Z2 xc7z020 或实验室更大器件 |
+| 参考基线 | SOCC 2023：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz |
+| 我们的目标 | 先“能放、能跑、KAT 过”，再优化；不承诺超过论文 |
+| 周期/延迟 | KeyGen/Encap/Decap 的 cycles 与 ms |
+| 上板 | 可选，不是 V0 闸门 |
 
-它已经使用了**稀疏乘法、RM FHT、RS ePIBM**。所以本项目**不主张**“稀疏乘法 / 完整 KEM / FHT”本身为原创；
-我们的增量在**RISC-V 集成、参数化设计空间、混合软硬协同、可复现验证**。
-详细差异见 [docs/11_组内基线与差异表.md](docs/11_组内基线与差异表.md)。
+### 6.3 ASIC（V2，条件）
 
-### 6.1 功能与正确性
-
-| 指标 | 目标 | 证据 |
-|:---|:---|:---|
-| 完整 KEM | HQC-128 KeyGen / Encaps / Decaps + FO + 隐式拒绝 | 系统级协同仿真 |
-| 官方 KAT | **100/100** 向量逐字节一致 | `data/logs/.../kat.log` |
-| 单元随机 | 稀疏乘法、FHT 各 ≥1000 组随机对拍 | `data/logs/.../xsim.log` |
-| 端到端 | ≥10 组协同仿真 KAT 全过 | `data/logs/.../system.log` |
-| 负向 | 篡改密文 → 隐式拒绝 | `data/logs/.../negative.log` |
-| 错误数 | 0 mismatch（硬闸门） | 所有回归日志 |
-
-### 6.2 性能与 PPA（仿真/综合口径）
-
-| 指标 | 目标 | 说明 |
-|:---|:---|:---|
-| 稀疏 vs 朴素乘法 | 周期数降低 **≥10×** | 理论 $O(wn)$ vs $O(n^2)$ 约两个数量级 |
-| 4 路并行 | 吞吐 ≥3×，资源 ≤2× | 以 1 路为基线 |
-| Decaps PL 数据通路 | ≤100k 周期（1 路）/ ≤30k（4 路） | 两次稀疏乘法 + 两次 FHT |
-| Fmax | **≥100 MHz**（post-synthesis OOC） | 冲刺 125 MHz |
-| PL 面积 | ≤35% LUT、≤30% BRAM、≤20% DSP | XC7Z020；混合架构只算 PL 部分 |
-| 核心算子加速比 | ≥5×（vs C 参考） | 单独报告 |
-| 端到端加速比 | ≥2×（冲刺 3×） | 混合架构 vs 纯软件基线 |
-| 系统集成 | RISC-V + PL 协处理器（V1） | 可编程性/系统级差异 |
-
-> 我们 V0 是**混合架构**（C/C++ SHAKE/RS + PL 稀疏乘法/FHT），PL 资源目标低于论文的全硬件 KEM；
-> **不与论文比全硬件绝对延迟**，比的是资源受限平台、可编程性、设计空间和完整 KAT 证据链。
-
-### 6.3 成果与冲刺
-
-- 可复现仓库：RTL、C/C++ 黄金、xsim、KAT、综合报告、设计空间数据；
-- 技术报告 + 答辩材料；
-- **冲刺**：1 篇论文 / 1 项专利 / 1 次竞赛提交（国家级立项的加分项，不作为硬闸门）；
-- 开源发布（许可证策略见第七节）。
+| 指标 | 目标 |
+|:---|:---|
+| 流程 | 综合 + area/power/fmax（不跑 P&R） |
+| 工具/PDK | **待确认** |
+| 输出 | 面积、功耗、频率、能效；与 FPGA 对比 |
+| 风险 | 团队无 ASIC 经验；没有工具/PDK 就不做 |
 
 ---
 
 ## 七、四人分工
 
-| 角色 | 负责 | 主要交付 | 依赖 |
+| 成员 | 角色 | 负责 | 备注 |
 |:---|:---|:---|:---|
-| **A 算法与软件基线** | spec、官方参考实现、KAT、C/C++ 黄金、SHAKE/采样/RS、协同仿真 harness | `models/kem/`、`data/vectors/`、KAT 日志 | 无 |
-| **B 稀疏乘法与存储** | `sparse_qc_mult`、dense 基线、循环移位/折叠、BRAM banking、LANES 设计空间；**兼任 Vivado 平台 owner** | RTL、tb、综合/Pareto、xsim 回归日志 | A 的黄金与向量 |
-| **C FHT 与 KEM 数据通路** | `rm_fht128`、重复合并、KEM 控制 FSM、AXI/MMIO、系统集成 | RTL、tb、协同仿真 | A/B 的接口 |
-| **D 验证与评测** | testbench 框架、随机向量、回归、xsim CI、PPA、报告、查新/原创性 | 回归套件、证据、报告、差异表 | 全员 |
+| **江力博** | 项目负责人 / 系统与验证 | 进度、Vivado 平台 owner、系统仿真、C 黄金 + KAT、PPA、repo/CI、ASIC 协调 | **不写 RTL**；总览项目 |
+| **房煦然** | 与老师对接 / 架构与验收 | 需求/范围、架构/契约、老师沟通、原创性/差异表、验收/答辩 | **不写 RTL**；总览项目 |
+| **骆弈宾** | RTL-A：协议/SHAKE/控制 | SHAKE256、固定重量采样、KEM/PKE 控制、FO/隐式拒绝 | RTL 主力 |
+| **曹子墨** | RTL-B：算术/解码 | 稀疏乘法、RS 编解码、RM FHT、重复合并 | RTL 主力 |
 
-- 每周一次集成：A 出向量 → B/C 出 RTL → D 跑回归 → 更新 `docs/records/`；
-- 接口以 `docs/contracts/` 为准，冻结后改动必须同步；
-- 人少时可合并：A+D、B+C；
-- **当前只有一台机器有 Vivado**：B 兼任 Vivado 平台 owner，周五统一跑 xsim + OOC 综合；
-  其他人用 iverilog/Verilator 做本地快速检查，最终以 B 的 xsim/综合日志为准。
-
-详细分工与周节奏见 [docs/10_团队分工与国家级指标.md](docs/10_团队分工与国家级指标.md)。
+- **RTL 线由骆弈宾、曹子墨负责；江力博不写 RTL**，只做系统/验证/Vivado/PPA；
+- 当前只有江力博的机器有 Vivado：他周五统一跑 xsim + OOC 综合；其他人用 iverilog/Verilator 预检；
+- 详细任务与验收见 [docs/13_开工清单与近期任务.md](docs/13_开工清单与近期任务.md)。
 
 ---
 
@@ -163,147 +152,124 @@ flowchart LR
 
 ```text
 dachuang/
-├─ README.md                 # 本文件
-├─ plan.md                   # 项目主计划、里程碑、验收口径
-├─ AGENTS.md                 # 工程硬约束（开工必读）
+├─ README.md
+├─ plan.md
+├─ AGENTS.md
 ├─ docs/
 │  ├─ 00_新队友阅读顺序.md
 │  ├─ 01_田静老师资料与研究方向.md
 │  ├─ 03_前置知识与学习路线.md
-│  ├─ 04_GitHub与Git一天上手.md
+│  ├─ 04_GitHub与Git一天上手指南.md
 │  ├─ 05_前置知识补全_从数电到Verilog实战.md
 │  ├─ 06_协作纪录与技能提炼规范.md
 │  ├─ 07_新手使用Agent教程.md
 │  ├─ 08_HQC技术路线.md
 │  ├─ 09_工程约束与验证规范.md
 │  ├─ 10_团队分工与国家级指标.md
-│  ├─ 11_组内基线与差异表.md   # SOCC 2023 对照与原创边界
-│  ├─ contracts/              # 接口契约
-│  └─ records/                # 协作纪录
-├─ src/                       # 可综合 RTL
-├─ sim/                       # testbench、xsim 脚本、软件仿真入口
-├─ models/                    # C/C++ 黄金模型与官方参考实现 harness
-├─ data/                      # 测试向量、黄金输出、日志、证据
-├─ build/constraints/         # XDC 时序/引脚约束
-├─ board/                     # 上板脚本与记录（最后再定）
-├─ report/                    # 设计报告与 llm_log
-├─ third_party/               # 第三方代码与许可证
-├─ skill/                     # 团队技能
-└─ tools/                     # 辅助脚本
+│  ├─ 11_组内基线与差异表.md
+│  ├─ 12_FPGA_ASIC路线.md
+│  ├─ 13_开工清单与近期任务.md
+│  ├─ contracts/
+│  └─ records/
+├─ src/                       # 完整 RTL
+├─ sim/                       # tb、xsim、系统仿真
+├─ models/
+│  ├─ golden/                 # 独立算术黄金
+│  └─ kem/harness/            # 官方 KAT 对拍
+├─ third_party/hqc/           # 官方 HQC 参考实现（public domain）
+├─ data/                      # 向量、黄金、日志、证据
+├─ build/constraints/         # XDC
+├─ asic/                      # ASIC 综合脚本（V2）
+├─ board/                     # FPGA 上板（可选）
+├─ report/                    # 报告 + llm_log
+└─ skill/                     # 团队技能
 ```
 
 ---
 
 ## 九、快速开始
 
-### 1. C/C++ 软件仿真（黄金模型）
+### 1. 官方 KAT（A1 已通过）
+
+WSL：
 
 ```bash
-# WSL / MSYS2
+bash models/kem/harness/run.sh
+# PASS: 100/100 vectors (pk/sk/ss)
+```
+
+### 2. C 黄金
+
+```bash
 make -C models/golden
 ./build/golden/qc_mult_ref --selftest
-./build/golden/qc_mult_ref 8 4D 1,4        # 期望输出 0x4E
+# PASS: 5/5 checks
 ```
 
-### 2. Vivado 硬件仿真（xsim）
+### 3. Vivado xsim
 
-```bash
-# WSL / Linux
-vivado -mode batch -source sim/scripts/run_xsim.tcl -tclargs tb_counter
-
-# Windows PowerShell
-.\sim\run.ps1 rtl tb_counter
+```powershell
+.\sim\run.ps1 rtl tb_sparse_qc_mult_n17669
 ```
 
-### 3. 一键入口
-
-```bash
-bash sim/run.sh sw                 # 编译并跑 C 黄金模型自检
-bash sim/run.sh rtl tb_counter     # 调 Vivado xsim
-bash sim/run.sh lint               # iverilog 快速 lint（可选）
-```
-
-通过标准：testbench 输出 `PASS: N/N checks`；KAT 输出 `PASS: N/N vectors`。
+通过标准：`PASS: N/N checks`。
 
 ---
 
-## 十、原创性与创新得分点
+## 十、原创性与贡献边界
 
-> 原则：**复现是基线，不是成果；参考必须引用，贡献必须量化。**
+组内 SOCC 2023 已做：稀疏乘法、RM FHT、RS ePIBM、完整 FPGA KEM。
+**这些不能当原创。**
 
-### 10.1 贡献边界
-
-| 内容 | 来源 | 本项目的工作 |
+| 内容 | 来源 | 本项目工作 |
 |:---|:---|:---|
-| HQC 算法与参数 | 官方 spec / 参考实现 | 复现、KAT 对拍 |
-| **稀疏乘法** | **SOCC 2023 已做**；[8] LEAP | ❌ 不能当原创；只做参数化/设计空间 |
-| **RM FHT 解码** | SOCC 2023 已做 | ❌ 不能当原创；实现/验证 |
-| **RS ePIBM 解码** | SOCC 2023 已做 | ❌ 不能当原创；V0 放 C/C++ |
-| **完整 HQC-128 KEM** | SOCC 2023 已做 | ❌ 不能当原创；做混合协同/KAT |
-| 参数化设计空间 | 本项目 | 64/128-bit、1/2/4/8 路、BRAM banking、Pareto |
-| 自研 RISC-V + HQC 协处理器 | 竞赛项目积累 | ✅ 系统级原创候选 |
-| 混合软硬协同 + C/RTL 协同仿真 | 本项目 | ✅ 工程/系统贡献 |
-| 恒定时间/故障检测 | 本项目（选做） | ✅ 安全方向候选 |
+| 稀疏乘法 | SOCC 2023 / LEAP | ❌ 不能当原创；做设计空间 |
+| RM FHT | SOCC 2023 | ❌ 不能当原创；实现/验证 |
+| RS ePIBM | SOCC 2023 | ❌ 不能当原创；实现/验证 |
+| 完整 FPGA KEM | SOCC 2023 | ❌ 不能当原创；做完整 RTL + ASIC |
+| **完整 RTL + ASIC 评估** | 本项目 | ✅ 主要差异点 |
+| **FPGA/ASIC 设计空间** | 本项目 | ✅ 候选增量 |
+| 开源可复现 | 本项目 | ✅ 工程贡献 |
+| RISC-V/恒定时间 | 本项目（选做） | ✅ 可选 |
 
-> **组内已做**：稀疏乘法、FHT、ePIBM、完整 HQC-128 KEM（`docs/11`）。
-> **本项目不再主张**这四点是原创；申报书必须把“复现”和“增量”分开写。
-
-### 10.2 创新得分点（候选，需查新确认）
-
-| # | 得分点 | 为什么新 | 怎么证明 |
-|:---|:---|:---|:---|
-| 1 | **RISC-V + HQC 协处理器** | 组内是固定硬件 KEM；我们做可编程 SoC 集成 | MMIO/指令接口 + 完整 KAT + 软硬划分表 |
-| 2 | **参数化稀疏乘法设计空间** | 组内是单一配置；我们给 1/2/4/8 路 Pareto | 周期/资源/时序对比 |
-| 3 | **混合软硬协同 + C/RTL 协同仿真** | 组内是全硬件；我们给资源受限平台的混合方案 | 100 组 KAT + 10 组端到端 + 延迟分解 |
-| 4 | HQC-192/256 参数化 | 组内只实现 HQC-128 | 三参数集资源/延迟对比 |
-| 5 | 恒定时间/故障检测（选做） | 组内未涉及 | 侧信道/故障注入实验 |
-
-> 这些是**候选**，必须用 `docs/11` 的差异表逐条确认；如果组内已经做过，就换角度，不硬写“原创”。
-
-### 10.3 查新与许可证
-
-- **查新**：组内 SOCC 2023 已经做了稀疏乘法/FHT/ePIBM/完整 HQC-128 KEM；差异表见 [docs/11_组内基线与差异表.md](docs/11_组内基线与差异表.md)。
-- **不要写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
-- **许可证**：本项目代码沿用 MIT；官方 HQC / 第三方 IP 放 `third_party/`，保留原 LICENSE。
-- **不确定许可证的代码不入库**：只记录获取方式、版本、SHA256；确认后再 vendor。
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
 
 ---
 
 ## 十一、文档导航
 
-**新队友按顺序读**：
-
 1. [GitHub 与 Git 一天上手指南](docs/04_GitHub与Git一天上手指南.md)
 2. [田静老师资料与研究方向](docs/01_田静老师资料与研究方向.md)
-3. [HQC 技术路线](docs/08_HQC技术路线.md) — **本项目主线**
-4. [工程约束与验证规范](docs/09_工程约束与验证规范.md) — 动手前必读
+3. [HQC 技术路线](docs/08_HQC技术路线.md)
+4. [工程约束与验证规范](docs/09_工程约束与验证规范.md)
 5. [团队分工与国家级指标](docs/10_团队分工与国家级指标.md)
 6. [组内基线与差异表](docs/11_组内基线与差异表.md) — **原创性必读**
-7. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
-8. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
-9. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
-10. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
+7. [FPGA/ASIC 路线](docs/12_FPGA_ASIC路线.md) — **新主题主线**
+8. [开工清单与近期任务](docs/13_开工清单与近期任务.md) — **本周任务**
+9. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
+10. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
+11. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
+12. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
 
 **接口契约**：[docs/contracts/](docs/contracts/README.md)
-
 **项目管理**：[plan.md](plan.md) · [AGENTS.md](AGENTS.md)
-
-**工程入口**：[models/README.md](models/README.md) · [sim/README.md](sim/README.md) · [data/README.md](data/README.md) · [build/constraints/README.md](build/constraints/README.md) · [board/README.md](board/README.md) · [report/README.md](report/README.md) · [skill/README.md](skill/README.md)
+**工程入口**：[models/README.md](models/README.md) · [sim/README.md](sim/README.md) · [data/README.md](data/README.md) · [build/constraints/README.md](build/constraints/README.md) · [board/README.md](board/README.md) · [report/README.md](report/README.md)
 
 ---
 
 ## 十二、当前状态
 
-- [x] 方向确定：HQC KEM 硬件加速
-- [x] 仓库骨架、阅读顺序、协作规范、接口契约
-- [x] C/C++ 稀疏乘法黄金模型 + 自检
-- [x] Vivado xsim 批处理入口 + smoke test
-- [x] 国家级立项指标与四人分工
-- [x] 已读并分析组内 SOCC 2023 HQC 论文，差异表已建（`docs/11`）
-- [x] 单路 `sparse_qc_mult` RTL baseline（N=64，4/4 checks）
-- [ ] A1：官方 HQC-128 参考实现 + KAT 跑通
-- [ ] A2：C/C++ 完整 KEM 黄金 + 系统协同仿真骨架
-- [ ] B1：`sparse_qc_mult` 的 HQC-128（N=17669）随机 1000 组 + 综合
-- [ ] B2：4 路并行 + 设计空间 + PPA
-- [ ] C1：RM FHT + KEM 数据通路 + 端到端 KAT
-- [ ] C2：HQC-192/256 / 自研 RISC-V / 上板（最后再定）
+- [x] 主题切换：完整 RTL HQC KEM + FPGA/ASIC 评估
+- [x] 官方 HQC 参考实现 vendor（`third_party/hqc`，public domain）
+- [x] A1：KAT keygen + decaps **100/100**（pk/sk/ss）
+- [x] 单路 `sparse_qc_mult` baseline（N=17669 折叠验证）
+- [ ] A2：encaps ct 字节级一致（需要 NIST DRBG/OpenSSL）
+- [ ] M1：完整 RTL 契约冻结
+- [ ] M2：稀疏乘法 1000 组随机 + OOC 综合
+- [ ] M3：SHAKE/采样 RTL
+- [ ] M4：RS/RM RTL
+- [ ] M5：KEM Top + 系统仿真 100/100 KAT
+- [ ] M6：FPGA PPA
+- [ ] M7：ASIC 综合（条件）
+
+> 旧的“PS+PL 混合、仿真优先”实现保存在本地分支 **`hqc-baseline`**（未 push）。

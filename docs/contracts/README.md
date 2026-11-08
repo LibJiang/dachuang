@@ -9,6 +9,9 @@
 | [rm_decoder_v0.md](rm_decoder_v0.md) | RM(1,7) FHT、重复合并、软/硬判决 | 草案 | 待定 |
 | [hqc_kem_v0.md](hqc_kem_v0.md) | KEM API、软硬划分、KAT、字节序 | 草案 | 待定 |
 | [axi_mmio_v0.md](axi_mmio_v0.md) | AXI4-Lite 寄存器/内存映射 | 草案 | 待定 |
+| `sha3_v0.md` | SHAKE256/Keccak 接口 | 待建 | 待定 |
+| `sampler_v0.md` | 固定重量采样接口 | 待建 | 待定 |
+| `rs_codec_v0.md` | RS 编解码接口 | 待建 | 待定 |
 
 ## 冻结流程
 

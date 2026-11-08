@@ -43,6 +43,8 @@ const GROUPS = [
       'docs/09_工程约束与验证规范.md',
       'docs/10_团队分工与国家级指标.md',
       'docs/11_组内基线与差异表.md',
+      'docs/12_FPGA_ASIC路线.md',
+      'docs/13_开工清单与近期任务.md',
       'docs/03_前置知识与学习路线.md',
       'docs/05_前置知识补全_从数电到Verilog实战.md',
     ],
