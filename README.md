@@ -1,8 +1,45 @@
-# HQC-KEM-FPGA/ASIC：HQC KEM 的完整 RTL 实现
+﻿# HQC-KEM-FPGA/ASIC：面向后量子密码 HQC 的完整 RTL 与 FPGA/ASIC 实现
 
 > 南京大学大创项目 · 田静老师课题组方向 · 后量子密码（PQC）· 码密码 HQC
-> **主题已切换：完整 RTL 的 HQC KEM 实现 → FPGA 原型 + ASIC 综合评估**
-> 当前状态：A1 官方参考实现/KAT 已跑通（keygen + decaps 100/100）
+> **主题：完整 RTL 的 HQC-128 KEM → FPGA 原型 + ASIC 综合评估**
+> **目标：2027-05-31 前完整 RTL 跑通 + 官方 KAT 100/100**
+
+## 项目简介
+
+HQC-KEM-FPGA/ASIC 用**完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝），
+用官方 KAT 逐字节验证，给出 FPGA PPA，并在条件允许时做 ASIC 综合评估（area/power/fmax，不流片）。
+
+当前已完成官方参考实现/KAT **100/100（pk/sk/ss）**；完整 RTL 按
+[`docs/14_总体工作计划.md`](docs/14_总体工作计划.md) 分阶段推进。
+
+## 系统架构
+
+```mermaid
+flowchart LR
+    HOST[Testbench / PS<br/>KAT / 配置] -->|AXI4-Lite| TOP[hqc_kem_top<br/>KeyGen / Encaps / Decaps]
+    TOP --> SHAKE[SHAKE256 / Keccak]
+    TOP --> SAMP[固定重量采样]
+    TOP --> SM[稀疏 QC 乘法]
+    TOP --> RS[RS 编解码 / ePIBM]
+    TOP --> RM[RM 编解码 / FHT]
+    SHAKE --- MEM[BRAM]
+    SAMP --- MEM
+    SM --- MEM
+    RS --- MEM
+    RM --- MEM
+    TOP --> REG[状态 / 结果寄存器]
+    TOP --> OUT[FPGA PPA / ASIC 综合评估]
+```
+
+## 当前状态
+
+| 项 | 状态 |
+|:---|:---|
+| 官方 KAT | ✅ 100/100（pk/sk/ss） |
+| 完整 RTL | 🟡 分阶段推进 |
+| FPGA PPA | ⬜ 待做 |
+| ASIC 综合 | ⬜ 条件阶段 |
+| 目标 | 2027-05-31 前跑通 |
 
 ---
 
@@ -53,38 +90,23 @@
 
 ---
 
-## 四、系统架构（完整 RTL）
+## 四、模块与接口
 
-```mermaid
-flowchart LR
-    HOST[Testbench / PS<br/>KAT / 配置] -->|AXI4-Lite| CTRL[KEM 控制 FSM]
-    CTRL --> SHAKE[SHAKE256 / Keccak]
-    CTRL --> SAMP[固定重量采样]
-    CTRL --> SM[稀疏 QC 乘法器]
-    CTRL --> RM[RM 编解码 / FHT]
-    CTRL --> RS[RS 编解码 / ePIBM]
-    SHAKE <--> MEM[BRAM]
-    SAMP <--> MEM
-    SM <--> MEM
-    RM <--> MEM
-    RS <--> MEM
-    CTRL --> REG[状态/结果寄存器]
-```
-
-模块与负责人：
+> 架构图见本页顶部；这里只列模块与负责人。
 
 | 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| `sha3/keccak` | SHAKE256、XOF、PRNG | A |
-| `sampler` | 固定重量采样（w/w_r/w_e） | A |
-| `sparse_qc_mult` | dense×sparse 准循环乘法 | B |
-| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C |
-| `rm_codec` | RM 编码 + FHT 解码 + 重复合并 | C |
-| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝 | A/C |
-| `axi_mmio` | 寄存器/BRAM/DMA | C |
-| `tb/golden` | KAT、C 黄金、系统仿真、PPA | D |
+| `sha3/keccak` | SHAKE256、XOF、PRNG | 骆弈宾 |
+| `sampler` | 固定重量采样（w/w_r/w_e） | 骆弈宾 |
+| `sparse_qc_mult` | dense×sparse 准循环乘法 | 曹子墨 |
+| `rs_codec` | RS 编码 + ePIBM/BM 解码 | 曹子墨 |
+| `rm_codec` | RM 编码 + FHT 解码 + 重复合并 | 曹子墨 |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝 | 骆弈宾 |
+| `axi_mmio` | 寄存器/BRAM/DMA | 骆弈宾 |
+| `tb/golden` | KAT、C 黄金、系统仿真、PPA | 江力博 |
 
-详细路线见 [docs/12_FPGA_ASIC路线.md](docs/12_FPGA_ASIC路线.md)。
+详细路线见 [docs/12_FPGA_ASIC路线.md](docs/12_FPGA_ASIC路线.md)；
+总体工作表见 [docs/14_总体工作计划.md](docs/14_总体工作计划.md)。
 
 ---
 
@@ -169,6 +191,7 @@ dachuang/
 │  ├─ 11_组内基线与差异表.md
 │  ├─ 12_FPGA_ASIC路线.md
 │  ├─ 13_开工清单与近期任务.md
+│  ├─ 14_总体工作计划.md
 │  ├─ contracts/
 │  └─ records/
 ├─ src/                       # 完整 RTL
@@ -246,10 +269,11 @@ make -C models/golden
 6. [组内基线与差异表](docs/11_组内基线与差异表.md) — **原创性必读**
 7. [FPGA/ASIC 路线](docs/12_FPGA_ASIC路线.md) — **新主题主线**
 8. [开工清单与近期任务](docs/13_开工清单与近期任务.md) — **本周任务**
-9. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
-10. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
-11. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
-12. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
+9. [总体工作计划](docs/14_总体工作计划.md) — **到 2027-06 的排期**
+10. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
+11. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
+12. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
+13. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
 
 **接口契约**：[docs/contracts/](docs/contracts/README.md)
 **项目管理**：[plan.md](plan.md) · [AGENTS.md](AGENTS.md)

@@ -1,8 +1,9 @@
-# 项目主计划：HQC KEM 的完整 RTL 实现（FPGA/ASIC）
+# 项目主计划：HQC-KEM-FPGA/ASIC
 
-> 项目：**HQC-128 KEM 的完整 RTL 实现 → FPGA 原型 + ASIC 综合评估**
+> 项目：**HQC-KEM-FPGA/ASIC：面向后量子密码 HQC 的完整 RTL 与 FPGA/ASIC 实现**
 > 方向：田静老师课题组 · 后量子密码（PQC）· 码密码 HQC
 > 更新：2026-11-06
+> 总体排期：`docs/14_总体工作计划.md`（目标 2027-05-31 前跑通）
 > 配套：`README.md`、`AGENTS.md`、`docs/12_FPGA_ASIC路线.md`、`docs/11_组内基线与差异表.md`、`docs/contracts/`
 
 ---
