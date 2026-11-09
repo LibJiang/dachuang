@@ -2,9 +2,9 @@
 
 > 状态：**草案**，V0 架构冻结前完成。
 > 目标：HQC-128 的 **全 RTL** KeyGen / Encaps / Decaps + FO + 隐式拒绝；
-> 官方 KAT 100/100；系统仿真 0 mismatch。
+> 官方 KAT 100/100；系统仿真 0 mismatch；**FPGA 板端全功能跑通**。
 >
-> 主题：完整 RTL → FPGA 原型 + ASIC 综合评估（ASIC 条件阶段）。
+> 主题：完整 RTL → **FPGA 全功能跑通（硬目标）** + ASIC 综合评估（55/28/90nm，条件阶段；不流片）。
 > 参考实现：`third_party/hqc/`（public domain，commit `06567cc`）。
 
 ---
@@ -88,6 +88,7 @@ decaps  : start_decaps(sk, ct) -> ss[32B]
 - [ ] Keccak/SHAKE RTL：自研还是复用公开 IP（许可证）
 - [ ] 采样器：拒绝采样 vs 恒定时间采样
 - [ ] RS 解码：ePIBM vs BM；是否先复用公开 IP
-- [ ] ASIC 工具/PDK/工艺节点
+- [ ] ASIC 工具（DC/Genus/OpenROAD）；PDK 已确认 55/28/90nm
 - [ ] HQC-192/256 是否进 V0（默认不进）
-- [ ] 上板是否作为答辩要求（默认可选）
+- [x] FPGA 板端全功能跑通：**硬目标**（老师已确认）；板卡待定
+- [x] ASIC 不流片，只做综合评估

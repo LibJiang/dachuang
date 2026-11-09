@@ -1,14 +1,24 @@
-# 板级与上板（PYNQ-Z2）
+# 板级与 FPGA 全功能跑通
 
-> 目标板：AMD PYNQ-Z2（Zynq-7020，`xc7z020clg400-1`）。
-> 当前状态：**未开始**。按导师意见，先把完整 KEM 在 C/C++ + xsim + 综合里跑通，**上板最后再定**。
-> 上板是加分项，不是 V0/立项/结题的硬闸门。
+> 目标板：**待确认**（PYNQ-Z2 `xc7z020` 或实验室更大 Artix-7/Kintex）。
+> 当前状态：**未开始**。
+> **老师已确认：不用流片；FPGA 全功能跑通是硬目标。**
+> 板卡待定**不降低**这个目标；ASIC 只做综合评估。
+
+---
+
+## 目标
+
+1. 板端 KeyGen / Encaps / Decaps 全功能跑通；
+2. 板端 KAT **100/100**；
+3. 记录 LUT/FF/BRAM/Fmax/cycles 与延迟；
+4. 生成 bitstream + `.hwh` + 可复现脚本。
 
 ---
 
 ## 计划
 
-1. 确认 PYNQ 镜像版本、SSH、Jupyter 可用；
+1. 确认板卡型号、PYNQ 镜像版本、SSH/Jupyter 可用；
 2. 用 Vivado 2026.1 生成 bitstream + `.hwh`；
 3. 在 PYNQ 上加载 overlay，PS 侧 Python 灌数、触发、读回；
 4. 跑 KAT，比较板端与仿真；
@@ -19,7 +29,7 @@
 
 ## 安全
 
-- **引脚约束不得猜**：使用 PYNQ-Z2 官方 master XDC；见 `build/constraints/README.md`。
+- **引脚约束不得猜**：使用官方 master XDC；见 `build/constraints/README.md`。
 - 上板前确认电压/时钟；不要热插拔。
 - 不要把私钥、种子、KAT 明文密钥提交到仓库或贴在截图里。
 
@@ -27,6 +37,7 @@
 
 ## 待补
 
+- [ ] 板卡型号（PYNQ-Z2 / 实验室板卡）
 - [ ] PYNQ 镜像版本
 - [ ] 板卡 IP / SSH 方式
 - [ ] 时钟频率与引脚

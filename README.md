@@ -37,9 +37,10 @@ flowchart LR
 |:---|:---|
 | 官方 KAT | ✅ 100/100（pk/sk/ss） |
 | 完整 RTL | 🟡 分阶段推进 |
+| FPGA 全功能跑通 | ⬜ 硬目标（板卡待定） |
 | FPGA PPA | ⬜ 待做 |
-| ASIC 综合 | ⬜ 条件阶段 |
-| 目标 | 2027-05-31 前跑通 |
+| ASIC 综合 | ⬜ 条件阶段；PDK 55/28/90nm，工具待确认 |
+| 目标 | 2027-05-31 前 FPGA 全跑通 |
 
 ---
 
@@ -50,8 +51,8 @@ flowchart LR
 - **RTL**：SHAKE256、固定重量采样、RS 编解码、RM FHT、稀疏准循环乘法、KEM 控制、AXI/MMIO；
 - **软件**：官方 HQC 参考实现 + C/C++ 黄金 + KAT，用于逐字节对拍；
 - **仿真**：Vivado xsim 系统级仿真 + 官方 KAT；
-- **FPGA**：Vivado 综合/实现，给出 LUT/FF/BRAM/Fmax/cycles；
-- **ASIC**：条件允许时做综合 + 面积/功耗/频率评估（不跑 P&R、不流片）。
+- **FPGA**：**全功能跑通（板端 KAT 100/100 + KeyGen/Encap/Decap）** + 综合/实现 PPA；
+- **ASIC**：55nm 主、28nm 对比、90nm 兜底；只做综合 + area/power/fmax，**不跑 P&R、不流片**。
 
 > 组内 SOCC 2023 已经做了 **FPGA 完整 HQC-128 KEM**。
 > 我们的差异化不靠“重复造稀疏乘法/完整 KEM”，而靠 **完整 RTL + ASIC 评估 + 设计空间 + 开源可复现**。
@@ -63,7 +64,7 @@ flowchart LR
 | 旧方案（已保存到 `hqc-baseline` 分支） | 新方案 |
 |:---|:---|
 | PS+PL 混合，C/C++ 做 SHAKE/RS | **完整 RTL**，所有模块上 PL |
-| 仿真优先，上板最后再定 | **FPGA 原型 + ASIC 综合评估** |
+| 仿真优先，上板最后再定 | **FPGA 全功能跑通 + ASIC 综合评估** |
 | 稀疏乘法 + 完整 KEM 当主线 | 稀疏乘法/FHT/RS/KEM 是**基线**；ASIC 与设计空间是增量 |
 
 组内 SOCC 2023 的边界：
@@ -82,11 +83,13 @@ flowchart LR
 |:---|:---|:---|
 | **V0 完整 RTL** | HQC-128 全 RTL（SHAKE/采样/RS/RM/乘法/控制） | ✅ |
 | **V0 验证** | 官方 KAT 100/100 + xsim 系统仿真 | ✅ |
-| **V1 FPGA** | Vivado 综合/实现 PPA；可选上板 | 🟡 建议 |
-| **V2 ASIC** | 综合 + area/power/fmax（不跑 P&R） | 🟡 条件 |
-| **V3 ASIC P&R/流片** | DRC/LVS/signoff/MPW | ⬜ 不建议 |
+| **V1 FPGA** | **板端全功能跑通 + KAT 100/100** + 综合/实现 PPA | ✅ **硬目标** |
+| **V2 ASIC** | 55nm 主 / 28nm 对比 / 90nm 兜底；只做综合 + area/power/fmax | 🟡 条件 |
+| **V3 ASIC P&R/流片** | DRC/LVS/signoff/MPW | ⬜ **明确不做（老师已确认不流片）** |
 
 **V0 不做**：HQC-192/256、掩码/侧信道、MPW、全参数集。
+
+> 板卡暂未确定（PYNQ-Z2 或实验室更大器件）；板卡待定**不降低**“FPGA 全功能跑通”这个硬目标。
 
 ---
 
@@ -120,8 +123,8 @@ flowchart LR
 | M3 SHAKE/采样 | Keccak、固定重量采样 | 与官方 KAT 对拍 |
 | M4 RS/RM | RS 编解码、FHT、重复合并 | 与官方向量对拍 |
 | M5 KEM Top | 完整 RTL KeyGen/Encaps/Decaps | 系统仿真 100/100 KAT |
-| M6 FPGA PPA | Vivado 综合/实现 | 资源/时序/周期 |
-| M7 ASIC（条件） | 综合 + area/power/fmax | 工具/PDK 可用才做 |
+| M6 FPGA 全功能跑通 + PPA | 板端 KAT + 综合/实现 | 板端 = 仿真；资源/时序/周期 |
+| M7 ASIC（条件） | 55nm 主 / 28nm / 90nm 综合 | 工具可用才做；不流片 |
 
 ---
 
@@ -138,20 +141,22 @@ flowchart LR
 
 | 指标 | 目标 |
 |:---|:---|
-| 器件 | PYNQ-Z2 xc7z020 或实验室更大器件 |
+| 器件 | **待确认**（PYNQ-Z2 或实验室更大 Artix-7/Kintex） |
 | 参考基线 | SOCC 2023：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz |
+| **全功能跑通** | **板端 KeyGen/Encap/Decap + KAT 100/100** |
 | 我们的目标 | 先“能放、能跑、KAT 过”，再优化；不承诺超过论文 |
 | 周期/延迟 | KeyGen/Encap/Decap 的 cycles 与 ms |
-| 上板 | 可选，不是 V0 闸门 |
+| PPA | LUT/FF/BRAM/DSP/Fmax/cycles |
 
 ### 6.3 ASIC（V2，条件）
 
 | 指标 | 目标 |
 |:---|:---|
-| 流程 | 综合 + area/power/fmax（不跑 P&R） |
-| 工具/PDK | **待确认** |
+| 流程 | 综合 + area/power/fmax（**不跑 P&R、不流片**） |
+| PDK | **55nm 主 / 28nm 对比 / 90nm 兜底** |
+| 工具 | 待确认；假设至少有一种（DC/Genus/OpenROAD） |
 | 输出 | 面积、功耗、频率、能效；与 FPGA 对比 |
-| 风险 | 团队无 ASIC 经验；没有工具/PDK 就不做 |
+| 风险 | 团队无 ASIC 经验；没有工具就降级为 ASIC 导向 RTL + FPGA PPA |
 
 ---
 
@@ -159,12 +164,13 @@ flowchart LR
 
 | 成员 | 角色 | 负责 | 备注 |
 |:---|:---|:---|:---|
-| **江力博** | 项目负责人 / 系统与验证 | 进度、Vivado 平台 owner、系统仿真、C 黄金 + KAT、PPA、repo/CI、ASIC 协调 | **不写 RTL**；总览项目 |
-| **房煦然** | 与老师对接 / 架构与验收 | 需求/范围、架构/契约、老师沟通、原创性/差异表、验收/答辩 | **不写 RTL**；总览项目 |
+| **江力博** | 项目负责人 / FPGA 与系统集成 | 进度、Vivado 平台 owner、FPGA bring-up、系统仿真、PPA、repo/CI、ASIC 协调 | **不写 RTL**；总览项目 |
+| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C 黄金 + KAT/验证**、原创性/差异表、验收/答辩 | **不写 RTL**；总览项目 |
 | **骆弈宾** | RTL-A：协议/SHAKE/控制 | SHAKE256、固定重量采样、KEM/PKE 控制、FO/隐式拒绝 | RTL 主力 |
 | **曹子墨** | RTL-B：算术/解码 | 稀疏乘法、RS 编解码、RM FHT、重复合并 | RTL 主力 |
 
-- **RTL 线由骆弈宾、曹子墨负责；江力博不写 RTL**，只做系统/验证/Vivado/PPA；
+- **RTL 线由骆弈宾、曹子墨负责；江力博不写 RTL**，负责 FPGA bring-up / Vivado / 系统集成 / PPA；
+- 房煦然不写 RTL，负责 **C 黄金 + KAT/验证** + 需求/契约/验收；
 - 当前只有江力博的机器有 Vivado：他周五统一跑 xsim + OOC 综合；其他人用 iverilog/Verilator 预检；
 - 详细任务与验收见 [docs/13_开工清单与近期任务.md](docs/13_开工清单与近期任务.md)。
 
@@ -203,7 +209,7 @@ dachuang/
 ├─ data/                      # 向量、黄金、日志、证据
 ├─ build/constraints/         # XDC
 ├─ asic/                      # ASIC 综合脚本（V2）
-├─ board/                     # FPGA 上板（可选）
+├─ board/                     # FPGA 全功能跑通（硬目标）
 ├─ report/                    # 报告 + llm_log
 └─ skill/                     # 团队技能
 ```
@@ -249,13 +255,16 @@ make -C models/golden
 | 稀疏乘法 | SOCC 2023 / LEAP | ❌ 不能当原创；做设计空间 |
 | RM FHT | SOCC 2023 | ❌ 不能当原创；实现/验证 |
 | RS ePIBM | SOCC 2023 | ❌ 不能当原创；实现/验证 |
-| 完整 FPGA KEM | SOCC 2023 | ❌ 不能当原创；做完整 RTL + ASIC |
-| **完整 RTL + ASIC 评估** | 本项目 | ✅ 主要差异点 |
+| 完整 FPGA KEM / 全功能跑通 | SOCC 2023 | ❌ 不能当原创；是硬目标但不是唯一创新 |
+| **ASIC 多工艺综合（55/28/90nm）** | 本项目 | ✅ **主要差异点** |
 | **FPGA/ASIC 设计空间** | 本项目 | ✅ 候选增量 |
-| 开源可复现 | 本项目 | ✅ 工程贡献 |
+| 参数化（192/256）/开源可复现 | 本项目 | ✅ 加分项 |
 | RISC-V/恒定时间 | 本项目（选做） | ✅ 可选 |
 
-**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”。
+
+> 国家级增量 = **ASIC 多工艺综合 + 设计空间 + 参数化/开源**；
+> 老师已确认**不流片**，所以只做综合评估，P&R/tapeout 不写进目标。
 
 ---
 
@@ -293,7 +302,7 @@ make -C models/golden
 - [ ] M3：SHAKE/采样 RTL
 - [ ] M4：RS/RM RTL
 - [ ] M5：KEM Top + 系统仿真 100/100 KAT
-- [ ] M6：FPGA PPA
-- [ ] M7：ASIC 综合（条件）
+- [ ] M6：**FPGA 全功能跑通（板端 KAT 100/100）+ PPA**
+- [ ] M7：ASIC 综合（55nm 主 / 28nm 对比 / 90nm 兜底；不流片）
 
 > 旧的“PS+PL 混合、仿真优先”实现保存在分支 **`hqc-baseline`**（已 push）。

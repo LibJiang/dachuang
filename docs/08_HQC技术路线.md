@@ -178,7 +178,7 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 
 ## 八、验证路线（完整 RTL）
 
-> 完整 RTL + 官方 KAT 是 V0 闸门；FPGA 是建议阶段，ASIC 是条件阶段。
+> 完整 RTL + 官方 KAT 是 V0 闸门；**FPGA 全功能跑通是硬目标**；ASIC 是条件阶段（不流片）。
 
 | 层级 | 对象 | 方法 | 通过标准 |
 |:---|:---|:---|:---|
@@ -188,9 +188,9 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 | L3 | SHAKE/采样 | 官方 KAT | 逐字节一致 |
 | L4 | KeyGen/Encaps/Decaps | 官方 KAT + 负向 | 逐字节一致；隐式拒绝正确 |
 | L5 | 系统仿真 | 完整 RTL + KAT | 100/100；0 mismatch |
-| L6 | FPGA PPA | Vivado 综合/实现 | 资源/时序/周期入档 |
-| L7 | ASIC 综合（条件） | 综合 + area/power/fmax | 工具/PDK 明确 |
-| L8 | 上板（可选） | PYNQ 灌数/读回 | 板端 = 仿真 |
+| L6 | FPGA 全功能跑通 + PPA | 板端 KAT + Vivado 综合/实现 | 板端 = 仿真；资源/时序/周期入档 |
+| L7 | ASIC 综合（条件） | 55/28/90nm 综合 + area/power/fmax | 工具可用；不流片 |
+| L8 | 文档/复现 | README + 报告 + 证据链 | 一键复现 |
 
 国家级指标与证据口径见 `docs/10_团队分工与国家级指标.md`。
 
@@ -202,7 +202,8 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 - **KAT**：采样/填充/字节序必须官方；否则永远对不上。
 - **RS/Keccak**：自研成本高 → 可复用公开 IP（注意许可证），但必须自己验证。
 - **组内基线**：SOCC 2023 必须先读；否则原创性边界不清。
-- **ASIC**：工具/PDK 不确定、团队无经验 → 只做综合评估，不碰 P&R。
+- **FPGA 全功能跑通**：板卡未定、时序/外设难 → 尽早确认板卡，预留 4–6 周 bring-up。
+- **ASIC**：PDK 有 55/28/90nm、工具待确认、团队无经验 → 只做综合评估，不碰 P&R、不流片。
 - **侧信道**：稀疏位置是秘密；V0 文档标注，后续再做恒定时间/地址混淆。
 - **自研核**：不设为 V0 前置；可选加分项。
 
