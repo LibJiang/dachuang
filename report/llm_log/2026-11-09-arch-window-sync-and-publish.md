@@ -12,18 +12,18 @@
 - `docs/12_FPGA_ASIC路线.md`、`docs/13_开工清单与近期任务.md`、`docs/14_总体工作计划.md`
 - `docs/workflow.md`、`docs/contracts/README.md`
 - `third_party/hqc/`、`models/kem/harness/`
-- `docs/records/2026-11-06-jianglibo-hqc-kat-and-topic-switch.md`
-- `docs/records/2026-11-06-jianglibo-teacher-constraints-and-plan-sync.md`
-- `docs/records/2026-11-09-jianglibo-gufa-contract-workflow.md`
-- `docs/records/2026-11-09-jianglibo-board-selection.md`
+- `report/llm_log/2026-11-06-jianglibo-hqc-kat-and-topic-switch.md`
+- `report/llm_log/2026-11-06-jianglibo-teacher-constraints-and-plan-sync.md`
+- `report/llm_log/2026-11-09-jianglibo-gufa-contract-workflow.md`
+- `report/llm_log/2026-11-09-jianglibo-board-selection.md`
 
 ## 决策
 
 - **以仓库最新文档为准**：窗口里的初始架构是「PS+PL 混合、仿真优先」；当前主线已演进为「完整 RTL HQC-128 KEM + FPGA/ASIC」。
 - **窗口结论只作历史基线**：不能覆盖 `docs/12`、`docs/13`、`docs/14` 的最新结论。
 - **原创边界不变**：组内 SOCC 2023 已做稀疏乘法、FHT、ePIBM、完整 FPGA KEM，四项不得当原创；增量在 ASIC 多工艺、FPGA/ASIC 设计空间、参数化/开源可复现。
-- **记录位置**：按用户要求放 `report/llm_log/`，不放在 `docs/records/`；此前误放到 `docs/records` 的提交已在 `feat/hqc-fpga-asic` 上用新提交撤回（未 force push）。
-- **分支**：只推 `feat/sys-jianglibo`；`main` 受保护，不直接 push。
+- **记录位置**：按用户要求统一放 `report/llm_log/`；原 `docs/records/` 已废弃。此前误放到 `docs/records` 的提交已在 `feat/hqc-fpga-asic` 上用新提交撤回（未 force push）。
+- **分支**：本记录先在 `feat/sys-jianglibo` 落库，再合并到 `main` 与所有 feat/* 分支。
 
 ### 窗口结论 → 仓库落点
 

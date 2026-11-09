@@ -54,7 +54,7 @@
   2. 验证命令与原始结果；
   3. `git diff --check`；
   4. 待办 / 未接入清单（明确标注“未实现 / 未验证”）。
-- 每次工作后在 `docs/records/` 写协作纪录（见 `docs/06`）。
+- 每次工作后在 `report/llm_log/` 写协作纪录（见 `docs/06`）。
 - **未经用户确认理解，不得 `git commit` / `git push`。**
 
 ### 3.1 古法编程与契约冻结（硬性，适用于所有代码线）
@@ -143,5 +143,5 @@
 - **理解门槛**：`skill/understand-gate/SKILL.md`
 - **契约冻结**：`skill/contract-freeze-workflow/SKILL.md`
 - 官方参考实现：`third_party/hqc/VENDORED.md`
-- 协作纪录：`docs/records/README.md` + `TEMPLATE.md`
+- 协作纪录：`report/llm_log/RECORDS-README.md` + `TEMPLATE.md`
 - 阅读顺序：`docs/00_新队友阅读顺序.md`

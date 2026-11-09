@@ -4,7 +4,7 @@
 
 - 阶段 / 任务：
 - 关联 issue / 里程碑：
-- 协作纪录：`docs/records/YYYY-MM-DD-成员-主题.md`
+- 协作纪录：`report/llm_log/YYYY-MM-DD-成员-主题.md`
 
 ## 本次改动
 

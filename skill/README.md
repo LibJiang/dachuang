@@ -1,6 +1,6 @@
 # 团队技能库（skill）
 
-> 来源：`docs/records/` 中反复验证过的做法、坑、检查项。
+> 来源：`report/llm_log/` 中反复验证过的做法、坑、检查项。
 > 规则：一个条目至少被 2 篇纪录 / 2 个人验证过，才升级为 skill。
 
 ---
@@ -45,4 +45,4 @@ description: <何时触发；解决什么问题>
 - 稀疏位置表的存储与循环移位
 - PYNQ-Z2 上板与 AXI-Lite 调试
 
-> 先写 `docs/records/`，不要一上来造 skill。
+> 先写 `report/llm_log/`，不要一上来造 skill。
