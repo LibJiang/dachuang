@@ -32,6 +32,7 @@
 | 2026-11-09 | jianglibo | 古法编程与契约冻结流程 | P0/P1 | [纪录](2026-11-09-jianglibo-gufa-contract-workflow.md) | 待复核 |
 | 2026-11-09 | jianglibo | 板卡选型 | P0 | [纪录](2026-11-09-jianglibo-board-selection.md) | 待复核 |
 | 2026-11-09 | jianglibo | 初始架构窗口对账与发布 | P0/P1 | [纪录](2026-11-09-arch-window-sync-and-publish.md) | 待复核 |
+| 2026-11-09 | jianglibo | 协作纪录迁移与半年计划同步 | P0/P1 | [纪录](2026-11-09-jianglibo-plan-half-year-sync.md) | 待复核 |
 
 ## 提炼记录
 
