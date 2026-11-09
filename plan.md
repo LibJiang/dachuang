@@ -2,8 +2,8 @@
 
 > 项目：**HQC-KEM-FPGA/ASIC：面向后量子密码 HQC 的完整 RTL 与 FPGA/ASIC 实现**
 > 方向：田静老师课题组 · 后量子密码（PQC）· 码密码 HQC
-> 更新：2026-11-06
-> 总体排期：`docs/14_总体工作计划.md`（目标 2027-05-31 前跑通）
+> 更新：2026-11-09
+> 总体排期：`docs/14_总体工作计划.md`（2026-11-06 → 2027-05-31，2027-06 只修 bug）
 > 配套：`README.md`、`AGENTS.md`、`docs/12_FPGA_ASIC路线.md`、`docs/11_组内基线与差异表.md`、`docs/contracts/`
 
 ---
@@ -54,78 +54,83 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 
 ## §2 当前状态
 
-- ✅ 主题切换：完整 RTL + FPGA/ASIC；
+> 更新：2026-11-09。开工前按 `docs/workflow.md` 更新本节，并贴 ✅ / 🟡 / ⬜ 三类清单。
+
+- ✅ 主题切换：完整 RTL HQC-128 KEM + FPGA/ASIC；
 - ✅ 四人分工定稿：江力博（系统/验证/Vivado）、房煦然（对接/架构/验收）、骆弈宾（RTL-A）、曹子墨（RTL-B）；
 - ✅ 近期任务与验收：`docs/13_开工清单与近期任务.md`；
 - ✅ 官方 HQC 参考实现 vendor（`third_party/hqc`，commit `06567cc`，public domain）；
-- ✅ A1：KAT keygen + decaps **100/100**（pk/sk/ss）；
-- ✅ 单路 `sparse_qc_mult` baseline，N=17669 折叠验证（3 组边界，831/831 checks）；
-- ⬜ encaps ct 字节级一致（需 NIST DRBG/OpenSSL）；
-- ⬜ 完整 RTL 契约未冻结；
+- ✅ KAT：keygen + decaps `PASS 100/100 (pk/sk/ss)`；C 黄金 `PASS 5/5`；
+- ✅ 单路 `sparse_qc_mult` baseline；N=17669 折叠 3 组边界 `831/831`（旧分支 `hqc-baseline`）；
+- ✅ 板卡选型：**AC701 XC7A200T 主**；XC7A100T 备；常州 200T 备用；
+- ✅ 古法编程 + 契约冻结流程（`docs/workflow.md`、`skill/`）；
+- ✅ 协作纪录统一到 `report/llm_log/`；`docs/records/` 已废弃删除；
+- 🟡 `sparse_qc_mult` N=64 xsim `PASS 4/4`；N=17669 随机 1000 组未跑；
+- ⬜ `encaps` 的 `ct` 字节级一致（需 NIST DRBG/OpenSSL）；
+- ⬜ 模块契约未冻结（SHAKE/采样/RS/RM/乘法/KEM Top/AXI）；
 - ⬜ SHAKE/采样/RS/RM 未实现；
 - ⬜ KEM Top / 系统仿真未实现；
-- ⬜ FPGA PPA / ASIC 评估未开始。
+- ⬜ FPGA 板端全功能 + PPA 未开始；
+- ⬜ ASIC 55/28/90nm 综合未开始。
 
 ---
 
-## §3 阶段与硬闸门
+## §3 阶段与硬闸门（半年排期）
 
-### M0 参考与 KAT（已完成）
+> 对齐 `docs/14_总体工作计划.md`：2026-11-06 → 2027-05-31 完成交付，2027-06 只修 bug/答辩。
+> 先完整 RTL + KAT，再 FPGA 全功能，最后 ASIC 综合评估；ASIC 不跑 P&R、不流片。
 
-- 官方参考实现 vendor；
-- KAT keygen + decaps 100/100；
-- C 黄金 + xsim smoke。
+### P0 启动与基线（2026-11-06 ~ 2026-11-30）
 
-### M1 架构与契约（第 1–2 月）
+- 官方参考实现、KAT、C 黄金、xsim 环境；
+- 契约草案（SHAKE/采样/RS/RM/乘法/KEM Top/AXI）；
+- 分支、任务、证据目录、板卡借用登记。
 
-- 冻结模块接口：SHAKE、采样、RS、RM、乘法、KEM Top、AXI；
-- 数据格式/位序/字节序/KAT 口径；
-- 系统仿真框架。
+**闸门**：KAT `100/100 (pk/sk/ss)`；契约草案齐；分支/任务/证据目录就绪。
 
-**闸门**：契约评审通过；每个模块有 tb 骨架。
+### P1 核心模块 RTL（2026-12-01 ~ 2027-01-31）
 
-### M2 稀疏乘法（第 2–3 月）
+- **第 1 周先冻结契约**；契约未冻结不写 RTL/C/脚本；
+- 骆弈宾：SHAKE256/Keccak、固定重量采样、KEM 控制 FSM；
+- 曹子墨：稀疏乘法、RS 编解码、RM FHT、重复合并；
+- 江力博：系统仿真框架、Vivado 环境、周五 xsim/综合；
+- 房煦然：KAT/C 黄金、契约冻结、验收清单、差异表。
 
-- N=17669 随机 1000 组；
-- OOC 综合 PPA；
-- 设计空间（1/2/4/8 路）作为后续。
+**闸门**：模块 tb `PASS`；稀疏乘法 N=17669 随机 1000 组 0 mismatch。
 
-**闸门**：0 mismatch；周期/资源入档。
+### P2 完整 RTL 集成（2027-02-01 ~ 2027-03-15）
 
-### M3 SHAKE/采样（第 3–5 月）
+- KEM Top + FO + 隐式拒绝；
+- 系统仿真（C 调度 + RTL 模块）；
+- 完整 RTL KAT 对拍；
+- 负向测试：篡改密文 → 隐式拒绝。
 
-- Keccak/SHAKE256；
-- 固定重量采样；
-- 与官方 KAT 对拍。
+**闸门**：完整 RTL KAT `100/100`；0 mismatch；负向通过。
 
-### M4 RS/RM（第 4–6 月）
+### P3 FPGA 全功能跑通 + PPA（2027-03-16 ~ 2027-04-30）
 
-- RS 编码 + ePIBM/BM 解码；
-- RM 编码 + FHT + 重复合并；
-- 官方测试向量对拍。
+- **AC701 XC7A200T** bring-up（预留 4–6 周）；
+- 板端 KeyGen/Encaps/Decaps + KAT `100/100`；
+- Vivado 综合/实现/时序/资源；
+- LUT/FF/BRAM/DSP/Fmax/cycles/WNS/WHS 入档。
 
-### M5 KEM Top（第 6–8 月）
+**闸门**：板端 = 仿真；KAT `100/100`；PPA 报告可复现。
 
-- KeyGen/Encaps/Decaps + FO + 隐式拒绝；
-- 系统仿真 100/100 KAT；
-- 0 mismatch。
-
-**闸门**：完整 RTL KAT 100/100。
-
-### M6 FPGA 全功能跑通 + PPA（第 8–10 月）
-
-- 板端 KeyGen/Encaps/Decaps 全功能跑通；
-- 板端 KAT 100/100；
-- Vivado 综合/实现；
-- LUT/FF/BRAM/DSP/Fmax/cycles。
-
-**闸门**：板端 = 仿真；KAT 100/100。
-
-### M7 ASIC 综合评估（条件，第 10–12 月）
+### P4 ASIC 综合评估（条件，2027-05-01 ~ 2027-05-15）
 
 - 55nm 主 / 28nm 对比 / 90nm 兜底；
 - 综合 + area/power/fmax；
-- 工具可用才做；**不跑 P&R、不流片**。
+- 工具可用才做；**不跑 P&R、不流片**；没有工具就写降级说明，不伪造数据。
+
+**闸门**：ASIC 数据入档，或“条件未满足 + 后续计划”。
+
+### P5 收尾/答辩（2027-05-16 ~ 2027-05-31）
+
+- 技术报告、答辩 PPT、复现入口；
+- 代码冻结（2027-05-24）、材料冻结（2027-05-31）；
+- 2027-06 只修 bug/答辩，不加功能。
+
+**闸门**：全套材料提交；`main` 冻结；仓库内命令可复现。
 
 ---
 
@@ -133,14 +138,13 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 
 | 里程碑 | 时间 | 交付 | 验收 |
 |:---|:---|:---|:---|
-| M0 | 已完成 | 官方参考 + KAT | 100/100 (pk/sk/ss) |
-| M1 | 第 1–2 月 | 契约/骨架 | 评审通过 |
-| M2 | 第 2–3 月 | 稀疏乘法 | 0 mismatch + PPA |
-| M3 | 第 3–5 月 | SHAKE/采样 | 与官方对拍 |
-| M4 | 第 4–6 月 | RS/RM | 与官方向量对拍 |
-| M5 | 第 6–8 月 | KEM Top | 100/100 KAT |
-| M6 | 第 8–10 月 | FPGA 全功能跑通 + PPA | 板端 KAT 100/100；资源/时序/周期 |
-| M7 | 第 10–12 月 | ASIC 综合（条件） | 55/28/90nm area/power/fmax |
+| M0 基线 | 2026-11-30 | 参考实现、KAT、契约草案 | KAT `100/100 (pk/sk/ss)` |
+| M1 模块 RTL | 2027-01-31 | SHAKE/采样/RS/RM/乘法 | 模块 tb `PASS`；0 mismatch |
+| M2 完整 RTL | 2027-03-15 | KEM Top、系统仿真 | 完整 KAT `100/100`；0 mismatch |
+| M3 FPGA | 2027-04-30 | 板端全功能 + PPA | 板端 KAT `100/100`；PPA 报告 |
+| M4 ASIC（条件） | 2027-05-15 | 55/28/90nm 综合 | area/power/fmax 或降级说明 |
+| M5 收尾 | 2027-05-31 | 报告/答辩/冻结 | 全套材料 |
+| 缓冲 | 2027-06 | 只修 bug/答辩 | 不加功能 |
 
 ---
 
@@ -216,4 +220,5 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 - 本文件管全项目目标、里程碑、验收；
 - 每次里程碑结束更新 §2，并在 `report/llm_log/` 留证据；
 - 任何“已完成”必须有仓库内命令可复现；
-- 上板和 ASIC 是加分项，不是 V0 硬闸门；但完整 RTL + KAT 是硬闸门。
+- 完整 RTL + KAT 是 V0 硬闸门；FPGA 全功能跑通（V1）是硬目标；ASIC（V2）是条件阶段，不跑 P&R、不流片；
+- 2027-06 只修 bug/答辩，不加功能。

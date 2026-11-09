@@ -81,18 +81,16 @@
 
 ---
 
-## 5. 里程碑
+## 5. 里程碑（半年排期）
 
-| 里程碑 | 交付 | 验收 |
-|:---|:---|:---|
-| M0 参考/KAT | `third_party/hqc`、`models/kem/harness` | **已完成**：`PASS: 100/100 (pk/sk/ss)` |
-| M1 架构/契约 | `docs/contracts/` 冻结；模块接口 | 评审通过 |
-| M2 稀疏乘法 | N=17669 随机回归 + OOC 综合 | 0 mismatch；PPA 入档 |
-| M3 SHAKE/采样 | Keccak、固定重量采样 | 与官方 KAT 对拍 |
-| M4 RS/RM | RS 编解码、FHT、重复合并 | 与官方测试向量对拍 |
-| M5 KEM Top | 完整 RTL KeyGen/Encaps/Decaps | 系统仿真 100/100 KAT |
-| M6 FPGA PPA | Vivado 综合/实现 | LUT/FF/BRAM/Fmax/cycles |
-| M7 ASIC（条件） | 综合 + area/power/fmax | 工具/PDK 可用才做 |
+| 里程碑 | 时间 | 交付 | 验收 |
+|:---|:---|:---|:---|
+| M0 基线 | 2026-11-30 | 参考实现、KAT、契约草案 | KAT `100/100 (pk/sk/ss)` |
+| M1 模块 RTL | 2027-01-31 | SHAKE/采样/RS/RM/乘法 | 模块 tb `PASS`；0 mismatch |
+| M2 完整 RTL | 2027-03-15 | KEM Top、系统仿真 | 完整 KAT `100/100`；0 mismatch |
+| M3 FPGA | 2027-04-30 | 板端全功能 + PPA | 板端 KAT `100/100`；LUT/FF/BRAM/Fmax/cycles |
+| M4 ASIC（条件） | 2027-05-15 | 55/28/90nm 综合 | area/power/fmax 或降级说明 |
+| M5 收尾 | 2027-05-31 | 报告/答辩/冻结 | 全套材料 |
 
 ---
 

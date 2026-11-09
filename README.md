@@ -117,18 +117,19 @@ flowchart LR
 
 ---
 
-## 五、里程碑
+## 五、里程碑（半年排期）
 
-| 里程碑 | 交付 | 验收 |
-|:---|:---|:---|
-| M0 参考/KAT | `third_party/hqc` + `models/kem/harness` | **已完成**：`PASS: 100/100 (pk/sk/ss)` |
-| M1 架构/契约 | 模块接口、数据格式、AXI 映射 | 契约冻结 |
-| M2 稀疏乘法 | N=17669 随机回归 + OOC 综合 | 0 mismatch；PPA |
-| M3 SHAKE/采样 | Keccak、固定重量采样 | 与官方 KAT 对拍 |
-| M4 RS/RM | RS 编解码、FHT、重复合并 | 与官方向量对拍 |
-| M5 KEM Top | 完整 RTL KeyGen/Encaps/Decaps | 系统仿真 100/100 KAT |
-| M6 FPGA 全功能跑通 + PPA | 板端 KAT + 综合/实现 | 板端 = 仿真；资源/时序/周期 |
-| M7 ASIC（条件） | 55nm 主 / 28nm / 90nm 综合 | 工具可用才做；不流片 |
+> 详细排期见 [docs/14_总体工作计划.md](docs/14_总体工作计划.md)；主计划见 [plan.md](plan.md)。
+
+| 里程碑 | 时间 | 交付 | 验收 |
+|:---|:---|:---|:---|
+| M0 基线 | 2026-11-30 | 参考实现、KAT、契约草案 | KAT `100/100 (pk/sk/ss)` |
+| M1 模块 RTL | 2027-01-31 | SHAKE/采样/RS/RM/乘法 | 模块 tb `PASS`；0 mismatch |
+| M2 完整 RTL | 2027-03-15 | KEM Top、系统仿真 | 完整 KAT `100/100`；0 mismatch |
+| M3 FPGA | 2027-04-30 | 板端全功能 + PPA | 板端 KAT `100/100`；PPA 报告 |
+| M4 ASIC（条件） | 2027-05-15 | 55/28/90nm 综合 | area/power/fmax 或降级说明 |
+| M5 收尾 | 2027-05-31 | 报告/答辩/冻结 | 全套材料 |
+| 缓冲 | 2027-06 | 只修 bug/答辩 | 不加功能 |
 
 ---
 
@@ -300,15 +301,17 @@ make -C models/golden
 
 - [x] 主题切换：完整 RTL HQC KEM + FPGA/ASIC 评估
 - [x] 官方 HQC 参考实现 vendor（`third_party/hqc`，public domain）
-- [x] A1：KAT keygen + decaps **100/100**（pk/sk/ss）
-- [x] 单路 `sparse_qc_mult` baseline（N=17669 折叠验证）
+- [x] A1：KAT keygen + decaps **100/100**（pk/sk/ss）；C 黄金 `5/5`
+- [x] 单路 `sparse_qc_mult` baseline；N=17669 折叠 `831/831`（旧分支 `hqc-baseline`）
+- [x] 板卡选型：AC701 XC7A200T 主；XC7A100T 备；常州 200T 备用
+- [x] 古法编程 + 契约冻结流程；协作纪录统一到 `report/llm_log/`
 - [ ] A2：encaps ct 字节级一致（需要 NIST DRBG/OpenSSL）
-- [ ] M1：完整 RTL 契约冻结
-- [ ] M2：稀疏乘法 1000 组随机 + OOC 综合
-- [ ] M3：SHAKE/采样 RTL
-- [ ] M4：RS/RM RTL
-- [ ] M5：KEM Top + 系统仿真 100/100 KAT
-- [ ] M6：**FPGA 全功能跑通（板端 KAT 100/100）+ PPA**
-- [ ] M7：ASIC 综合（55nm 主 / 28nm 对比 / 90nm 兜底；不流片）
+- [ ] M0（2026-11-30）：契约草案 + 分支/任务/证据目录就绪
+- [ ] M1（2027-01-31）：完整 RTL 契约冻结；SHAKE/采样/RS/RM/乘法 tb `PASS`
+- [ ] M1（2027-01-31）：稀疏乘法 N=17669 随机 1000 组 + OOC 综合
+- [ ] M2（2027-03-15）：KEM Top + 系统仿真 100/100 KAT
+- [ ] M3（2027-04-30）：**FPGA 全功能跑通（板端 KAT 100/100）+ PPA**
+- [ ] M4（2027-05-15，条件）：ASIC 综合（55nm 主 / 28nm 对比 / 90nm 兜底；不流片）
+- [ ] M5（2027-05-31）：报告/答辩/冻结；2027-06 只修 bug
 
-> 旧的“PS+PL 混合、仿真优先”实现保存在分支 **`hqc-baseline`**（已 push）。
+> `hqc-baseline` 已合并最新文档与协作纪录；旧的“PS+PL 混合、仿真优先”实现仍保留在该分支历史中。
