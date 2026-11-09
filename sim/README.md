@@ -104,4 +104,4 @@ bash sim/run.sh lint tb_counter
 - 每个 tb 至少覆盖：复位、边界、随机、错误注入（如适用）；
 - 随机种子固定并打印；
 - `.vvp/.vcd/.wdb/.jou/.log` 不入库；
-- 每次 RTL 改动后跑回归，并在 `docs/records/` 留证据。
+- 每次 RTL 改动后跑回归，并在 `report/llm_log/` 留证据。

@@ -10,7 +10,7 @@
 |:---|:---|:---|
 | `vectors/` | 输入向量（dense hex、位置列表、KAT 输入） | 生成脚本（放 `tools/` 或 `models/`） |
 | `golden/` | 期望输出（`.expected`）、SHA256、manifest | 运行日志 |
-| `logs/` | 仿真/编译/上板原始日志 | 手工总结（放 `docs/records/`） |
+| `logs/` | 仿真/编译/上板原始日志 | 手工总结（放 `report/llm_log/`） |
 | `evidence/` | 综合/时序/上板报告、截图说明、manifest | 大体积 bit/dcp（不入库） |
 
 ---

@@ -1,6 +1,6 @@
 # YYYY-MM-DD 成员名 主题
 
-> 复制本文件后重命名为 `YYYY-MM-DD-成员名-主题.md`，放在 `docs/records/` 下。
+> 复制本文件后重命名为 `YYYY-MM-DD-成员名-主题.md`，放在 `report/llm_log/` 下。
 > 规范见 `docs/06_协作纪录与技能提炼规范.md`；一页以内，重点是证据和反思。
 
 ## 基本信息

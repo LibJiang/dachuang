@@ -65,9 +65,9 @@ const GROUPS = [
     title: '协作与纪录',
     files: [
       'docs/06_协作纪录与技能提炼规范.md',
-      'docs/records/README.md',
-      'docs/records/TEMPLATE.md',
-      'docs/records/EXAMPLE-record.md',
+      'report/llm_log/RECORDS-README.md',
+      'report/llm_log/TEMPLATE.md',
+      'report/llm_log/EXAMPLE-record.md',
     ],
   },
 ];
