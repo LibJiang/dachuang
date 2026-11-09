@@ -7,9 +7,11 @@
 
 ## 索引
 
-| 主题 | 文件 | 来源纪录 | 负责人 |
+| 主题 | 文件 | 状态 | 负责人 |
 |:---|:---|:---|:---|
-| 待建 | — | — | — |
+| 古法编程（契约先行 + 小步交付） | [`gufa-programming/SKILL.md`](gufa-programming/SKILL.md) | **强制** | 全员 |
+| 理解门槛（commit 前 3 题） | [`understand-gate/SKILL.md`](understand-gate/SKILL.md) | **强制** | 全员 |
+| 契约冻结工作流 | [`contract-freeze-workflow/SKILL.md`](contract-freeze-workflow/SKILL.md) | **强制** | 全员 |
 
 ---
 

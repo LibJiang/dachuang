@@ -9,9 +9,9 @@
 
 ## 一、开工三件事（缺一不可）
 
-1. **读约束**：完整阅读 `plan.md`、`docs/12_FPGA_ASIC路线.md`、`docs/11_组内基线与差异表.md`、
-   `docs/08_HQC技术路线.md`、`docs/09_工程约束与验证规范.md`、`docs/10_团队分工与国家级指标.md`，
-   以及本次要改模块对应的 `docs/contracts/*.md`。
+1. **读约束**：完整阅读 `docs/workflow.md`、`plan.md`、`docs/12_FPGA_ASIC路线.md`、
+   `docs/11_组内基线与差异表.md`、`docs/08_HQC技术路线.md`、`docs/09_工程约束与验证规范.md`、
+   `docs/10_团队分工与国家级指标.md`，以及本次要改模块对应的 `docs/contracts/*.md`。
 2. **核实现状**：先跑
    ```bash
    git rev-parse --abbrev-ref HEAD
@@ -22,7 +22,8 @@
    - ✅ 已实现并验证
    - 🟡 已实现但未验证
    - ⬜ 未实现 / 未接入
-3. **声明范围**：一句话说明本次改哪些文件、验证方式（C/C++ 黄金 / xsim / 上板）、预估行数。
+3. **声明范围 + 契约状态**：一句话说明本次改哪些文件、验证方式（C/C++ 黄金 / xsim / 板端）、预估行数；
+   并明确对应契约是否已冻结。**没有冻结契约 → 不许写实现代码。**
 
 ---
 
@@ -56,6 +57,20 @@
 - 每次工作后在 `docs/records/` 写协作纪录（见 `docs/06`）。
 - **未经用户确认理解，不得 `git commit` / `git push`。**
 
+### 3.1 古法编程与契约冻结（硬性，适用于所有代码线）
+
+> 适用于 Verilog RTL、testbench、C/C++、Python、Tcl、shell/PowerShell 脚本。
+> 不是只约束 RTL。
+
+- **契约先行**：没有冻结的 `docs/contracts/<模块>_v0.md`，不许写任何实现代码；
+  先按 `skill/contract-freeze-workflow/SKILL.md` 起草、评审、冻结。
+- **古法编程**：先给步骤清单；单步 ≤100 行；每步自检 + 讲解 + 2–3 道理解题；
+  **等用户回答通过后才进下一步**。见 `skill/gufa-programming/SKILL.md`。
+- **理解门槛**：commit 前逐段讲解 + 3 题；用户确认理解后才允许提交。
+  见 `skill/understand-gate/SKILL.md`。
+- **三处同步**：接口/数据格式变更必须同步 RTL、tb/系统仿真、C 黄金/KAT/脚本、契约。
+- **不允许**“先写代码、后补契约”；契约未冻结时只允许写契约和验证计划。
+
 ### 4. 编码与综合约束
 
 - 进入综合的 RTL 必须是 **Verilog-2001** 可解析：
@@ -70,8 +85,10 @@
 
 ### 5. HQC 专项约束
 
-- **先完整 RTL 协议，再 FPGA/ASIC**：上板是可选加分，ASIC 是条件阶段；完整 RTL + KAT 是 V0 硬闸门。
-- **“完整”的判定**：全 RTL KeyGen/Encaps/Decaps；官方 KAT 100/100；系统仿真 0 mismatch。
+- **先完整 RTL 协议，再 FPGA 全功能跑通**：FPGA 是硬目标；ASIC 只做综合、**不流片**。
+- **“完整”的判定**：全 RTL KeyGen/Encaps/Decaps；官方 KAT 100/100；**FPGA 板端 KAT 100/100**；系统仿真 0 mismatch。
+- **老师已确认**：不流片；PDK 55/28/90nm；FPGA 全功能跑通是硬目标。
+- **ASIC 节点**：55nm 主 / 28nm 对比 / 90nm 兜底；只做综合 + area/power/fmax。
 - **参数集**：V0 只做 HQC-128（官方 HQC-1）；HQC-192/256 后续，不得为此牺牲正确性。
 - **参考实现只读**：`third_party/hqc/` 是官方 public domain 代码，不得改算法；本地修改用 patch 记录。
 - **数据表示**：稠密多项式按 bit 存储，`bit i = X^i` 的系数；稀疏多项式存位置列表（升序、无重复）。
@@ -88,8 +105,9 @@
 - 申报书 / 报告必须包含“贡献边界表”：复现 / 改进 / 原创分别是什么。
 - **组内 SOCC 2023 已经做了稀疏乘法、RM FHT、RS ePIBM、完整 HQC-128 KEM**；
   这四项不得当本项目原创。差异表见 `docs/11_组内基线与差异表.md`。
-- 不得写“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
-- 候选增量应落在：**完整 RTL + ASIC 评估**、FPGA/ASIC 设计空间、开源可复现、RISC-V 集成（可选）、恒定时间（可选）。
+- 不得写“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”。
+- **FPGA 全功能跑通是硬目标，但组内 SOCC 2023 已做**；不能当唯一原创。
+- 候选增量应落在：**ASIC 多工艺（55/28/90nm）**、FPGA/ASIC 设计空间、参数化/开源可复现、RISC-V 集成（可选）、恒定时间（可选）。
 
 ---
 
@@ -102,24 +120,28 @@
 | RTL 仿真 | **Vivado xsim** | `sim/scripts/run_xsim.tcl` |
 | 快速 lint（可选） | Icarus Verilog | `bash sim/run.sh lint` |
 | FPGA 综合 / 实现 | Vivado 2026.1 | `build/` + `build/constraints/` |
-| ASIC 综合（条件） | Cadence/Synopsys/OpenROAD（待确认） | `asic/` |
-| 上板（可选） | PYNQ-Z2 | `board/` |
+| ASIC 综合（条件） | Cadence/Synopsys/OpenROAD（待确认）；PDK 55/28/90nm | `asic/` |
+| FPGA 板级验证 | AC701 XC7A200T（主）/ XC7A100T（备） | `board/`（**硬目标**） |
 
 - 不以 Icarus 替代 xsim 作为最终 RTL 验证依据；Icarus 只用于快速 lint。
 - 所有仿真日志放 `data/logs/`，FPGA/ASIC 报告放 `data/evidence/`。
-- 先完成完整 RTL + KAT；上板/ASIC 是后置/条件阶段。
+- 先完成完整 RTL + KAT，再完成 FPGA 全功能跑通；ASIC 是后置/条件阶段，且不流片。
 
 ---
 
 ## 四、参考入口
 
+- **开发流程（必读）**：`docs/workflow.md`
 - 主计划：`plan.md`
 - HQC 技术路线：`docs/08_HQC技术路线.md`
 - 组内基线与差异：`docs/11_组内基线与差异表.md`
 - **FPGA/ASIC 路线**：`docs/12_FPGA_ASIC路线.md`
 - 工程约束：`docs/09_工程约束与验证规范.md`
 - 分工与指标：`docs/10_团队分工与国家级指标.md`
-- 接口契约：`docs/contracts/README.md`
+- 接口契约：`docs/contracts/README.md` + `docs/contracts/TEMPLATE.md`
+- **古法编程**：`skill/gufa-programming/SKILL.md`
+- **理解门槛**：`skill/understand-gate/SKILL.md`
+- **契约冻结**：`skill/contract-freeze-workflow/SKILL.md`
 - 官方参考实现：`third_party/hqc/VENDORED.md`
 - 协作纪录：`docs/records/README.md` + `TEMPLATE.md`
 - 阅读顺序：`docs/00_新队友阅读顺序.md`

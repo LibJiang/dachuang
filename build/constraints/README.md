@@ -1,7 +1,9 @@
 # 约束文件说明
 
 > 本目录只放**手写、可评审**的约束。生成物（Vivado 自动生成的 XDC、报告）不入库。
-> 目标板：PYNQ-Z2（Zynq-7020，`xc7z020clg400-1`）。
+> 主开发板：**Artix-7 XC7A200T（AC701）**；备选 XC7A100T。
+> 现有 `timing.xdc` / `pynq_z2_pins.xdc` 是 **PYNQ-Z2 备用约束**，不用于 AC701。
+> AC701 官方 master XDC 拿到后，另建 `ac701_pins.xdc`，不要改 PYNQ-Z2 文件冒充。
 
 ---
 
@@ -9,8 +11,9 @@
 
 | 文件 | 内容 | 状态 |
 |:---|:---|:---|
-| `timing.xdc` | 板载 125 MHz 主时钟、时钟不确定性、I/O 延迟占位 | 草案 |
-| `pynq_z2_pins.xdc` | `clk` / `led[3:0]` / `btn0` 引脚 | 已按官方 master XDC 子集填写 |
+| `timing.xdc` | PYNQ-Z2 备用：125 MHz 主时钟、时钟不确定性、I/O 延迟占位 | 备用草案 |
+| `pynq_z2_pins.xdc` | PYNQ-Z2 备用：`clk` / `led[3:0]` / `btn0` | 备用 |
+| `ac701_pins.xdc` | AC701 主开发板引脚/时钟 | **待建**（官方 master XDC） |
 
 引脚来源：官方 PYNQ-Z2 Master XDC v1.0
 （成员 `PYNQ-Z2 v1.0.xdc`，SHA256 `07441e999bac956c77e78091c782cade278efc5a78affc51e5b12b4800b1fe73`）。

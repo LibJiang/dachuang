@@ -22,9 +22,9 @@
 |:---|:---|:---|
 | **V0 完整 RTL** | HQC-128 KeyGen / Encaps / Decaps 全 RTL；SHAKE、采样、RS、RM、稀疏乘法、控制 | ✅ |
 | **V0 验证** | C/C++ 官方参考 KAT；RTL 系统仿真；100/100 KAT | ✅ |
-| **V1 FPGA** | Vivado 综合/实现 PPA；可选上板 | 🟡 建议做 |
-| **V2 ASIC** | 综合 + 面积/功耗/频率评估（不跑 P&R） | 🟡 条件允许 |
-| **V3 ASIC P&R** | DRC/LVS/signoff/流片 | ⬜ 不建议本科一年做 |
+| **V1 FPGA** | **板端全功能跑通 + KAT 100/100** + Vivado PPA | ✅ **硬目标** |
+| **V2 ASIC** | 55nm 主 / 28nm 对比 / 90nm 兜底；综合 + area/power/fmax | 🟡 条件允许 |
+| **V3 ASIC P&R** | DRC/LVS/signoff/流片 | ⬜ **明确不做（老师已确认不流片）** |
 
 **V0 不做**：掩码/侧信道、MPW、全参数集 192/256（先 HQC-128）。
 
@@ -109,20 +109,22 @@
 
 | 指标 | 目标 |
 |:---|:---|
-| 器件 | PYNQ-Z2 xc7z020 或实验室更大器件 |
+| 器件 | **AC701 XC7A200T（主）**；小梅哥 XC7A100T（备）；常州 200T（备用） |
 | 资源 | 参考 SOCC 2023：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz（xc7a200t-3） |
+| **全功能跑通** | **板端 KeyGen/Encap/Decap + KAT 100/100** |
 | 我们的目标 | 先做到“能放、能跑、KAT 过”，再谈优化；不承诺超过论文 |
 | 周期/延迟 | KeyGen/Encap/Decap 的 cycles 与 ms |
-| 上板 | 可选，不是 V0 闸门 |
+| PPA | LUT/FF/BRAM/DSP/Fmax/cycles |
 
 ### 6.3 ASIC（V2，条件）
 
 | 指标 | 目标 |
 |:---|:---|
-| 流程 | 综合 + area/power/fmax 评估（不跑 P&R） |
-| 工具/PDK | **待确认**（Cadence/Synopsys/OpenROAD + 工艺库） |
+| 流程 | 综合 + area/power/fmax 评估（**不跑 P&R、不流片**） |
+| PDK | **55nm 主 / 28nm 对比 / 90nm 兜底** |
+| 工具 | 待确认；假设至少一种（DC/Genus/OpenROAD） |
 | 输出 | 面积、功耗、频率、能效；与 FPGA 对比 |
-| 风险 | 团队无 ASIC 经验；没有工具/PDK 就不做 |
+| 风险 | 团队无 ASIC 经验；没有工具就降级为 ASIC 导向 RTL + FPGA PPA |
 
 ---
 
@@ -133,30 +135,32 @@
 
 我们的候选增量：
 
-1. **完整 RTL + ASIC 综合评估**（组内论文是 FPGA-only）；
+1. **ASIC 多工艺综合（55/28/90nm）**（组内论文是 FPGA-only）；
 2. **FPGA/ASIC 设计空间**（字宽、并行度、存储、流水线）；
-3. **开源可复现**（官方 KAT + RTL + 综合脚本 + 证据链）；
-4. 可选：RISC-V 集成 / 恒定时间 / HQC-192/256。
+3. **参数化/开源可复现**（HQC-128/192/256 + 官方 KAT + 脚本 + 证据链）；
+4. 可选：RISC-V 集成 / 恒定时间。
 
-**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”。
 
 ---
 
 ## 8. ASIC 可行性与风险
 
-- 目前**没有确认 ASIC 工具/PDK**；团队**没人做过 ASIC 流程**；
-- 因此 ASIC 只做 **综合 + area/power/fmax 评估**，不跑 P&R、不流片；
-- 如果实验室没有工具，退回“FPGA 完整 RTL + PPA + ASIC 导向设计”，ASIC 作为文档/展望；
-- 如果只有开源工具，可用 Yosys/OpenROAD + Sky130 做学习性评估，但不作为硬指标。
+- 实验室有 **28/90/55nm PDK**（老师已确认）；**工具待确认**，假设至少有一种；
+- 推荐主节点 **55nm**：比 28nm 成熟、工具/库更稳；比 90nm 更有面积/频率说服力；
+- 28nm 作为对比；90nm 作为兜底；三者都只做综合，不跑 P&R、不流片；
+- 团队没人做过 ASIC 流程：只做综合评估，找师兄/老师带；不碰 P&R；
+- 如果工具最终不可用，退回“FPGA 完整 RTL + PPA + ASIC 导向设计”，不伪造 ASIC 数据。
 
 ---
 
 ## 9. 待确认
 
-- [ ] ASIC 工具/PDK/工艺节点（Cadence/Synopsys/OpenROAD？）
-- [ ] FPGA 板卡（PYNQ-Z2 还是更大器件？）
+- [ ] ASIC 工具（DC/Genus/OpenROAD？）
+- [x] PDK：28/90/55nm 可用；主推 55nm
+- [x] FPGA 板卡：AC701 XC7A200T 主；XC7A100T 备；常州 200T 备用
 - [ ] 是否要 HQC-192/256（先做 HQC-128）
-- [ ] 上板是否作为答辩要求
+- [x] FPGA 全功能跑通：硬目标；ASIC 不流片
 - [ ] 团队 ASIC 经验/师兄带
 - [ ] 时间节点（立项/中期/结题）
 
