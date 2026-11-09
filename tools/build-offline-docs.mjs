@@ -31,6 +31,7 @@ const GROUPS = [
     title: '新手必读',
     files: [
       'docs/00_新队友阅读顺序.md',
+      'docs/workflow.md',
       'docs/04_GitHub与Git一天上手指南.md',
       'docs/07_新手使用Agent教程.md',
     ],

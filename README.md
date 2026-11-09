@@ -42,6 +42,9 @@ flowchart LR
 | ASIC 综合 | ⬜ 条件阶段；PDK 55/28/90nm，工具待确认 |
 | 目标 | 2027-05-31 前 FPGA 全跑通 |
 
+> **开工前必读**：[开发流程与硬约束](docs/workflow.md) · [古法编程](skill/gufa-programming/SKILL.md) · [理解门槛](skill/understand-gate/SKILL.md) · [契约冻结](skill/contract-freeze-workflow/SKILL.md)
+> **没有冻结契约，不许写代码；单步 ≤100 行；commit 前 3 题。**
+
 ---
 
 ## 一、项目一句话
@@ -198,6 +201,7 @@ dachuang/
 │  ├─ 12_FPGA_ASIC路线.md
 │  ├─ 13_开工清单与近期任务.md
 │  ├─ 14_总体工作计划.md
+│  ├─ workflow.md              # 开发流程与硬约束
 │  ├─ contracts/
 │  └─ records/
 ├─ src/                       # 完整 RTL
@@ -270,19 +274,20 @@ make -C models/golden
 
 ## 十一、文档导航
 
-1. [GitHub 与 Git 一天上手指南](docs/04_GitHub与Git一天上手指南.md)
-2. [田静老师资料与研究方向](docs/01_田静老师资料与研究方向.md)
-3. [HQC 技术路线](docs/08_HQC技术路线.md)
-4. [工程约束与验证规范](docs/09_工程约束与验证规范.md)
-5. [团队分工与国家级指标](docs/10_团队分工与国家级指标.md)
-6. [组内基线与差异表](docs/11_组内基线与差异表.md) — **原创性必读**
-7. [FPGA/ASIC 路线](docs/12_FPGA_ASIC路线.md) — **新主题主线**
-8. [开工清单与近期任务](docs/13_开工清单与近期任务.md) — **本周任务**
-9. [总体工作计划](docs/14_总体工作计划.md) — **到 2027-06 的排期**
-10. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
-11. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
-12. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
-13. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
+1. [开发流程与硬约束](docs/workflow.md) — **开工必读**
+2. [GitHub 与 Git 一天上手指南](docs/04_GitHub与Git一天上手指南.md)
+3. [田静老师资料与研究方向](docs/01_田静老师资料与研究方向.md)
+4. [HQC 技术路线](docs/08_HQC技术路线.md)
+5. [工程约束与验证规范](docs/09_工程约束与验证规范.md)
+6. [团队分工与国家级指标](docs/10_团队分工与国家级指标.md)
+7. [组内基线与差异表](docs/11_组内基线与差异表.md) — **原创性必读**
+8. [FPGA/ASIC 路线](docs/12_FPGA_ASIC路线.md) — **新主题主线**
+9. [开工清单与近期任务](docs/13_开工清单与近期任务.md) — **本周任务**
+10. [总体工作计划](docs/14_总体工作计划.md) — **到 2027-06 的排期**
+11. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
+12. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
+13. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
+14. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
 
 **接口契约**：[docs/contracts/](docs/contracts/README.md)
 **项目管理**：[plan.md](plan.md) · [AGENTS.md](AGENTS.md)

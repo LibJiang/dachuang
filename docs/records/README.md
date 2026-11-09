@@ -29,6 +29,7 @@
 | 2026-11-06 | jianglibo | HQC 基线与稀疏乘法 baseline | A/B1 | [纪录](2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md) | 待复核 |
 | 2026-11-06 | jianglibo | HQC KAT 与主题切换 | A1 | [纪录](2026-11-06-jianglibo-hqc-kat-and-topic-switch.md) | 待复核 |
 | 2026-11-06 | jianglibo | 老师约束与计划同步 | P0 | [纪录](2026-11-06-jianglibo-teacher-constraints-and-plan-sync.md) | 待复核 |
+| 2026-11-09 | jianglibo | 古法编程与契约冻结流程 | P0/P1 | [纪录](2026-11-09-jianglibo-gufa-contract-workflow.md) | 待复核 |
 
 ## 提炼记录
 

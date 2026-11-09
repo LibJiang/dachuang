@@ -9,9 +9,9 @@
 
 ## 一、开工三件事（缺一不可）
 
-1. **读约束**：完整阅读 `plan.md`、`docs/12_FPGA_ASIC路线.md`、`docs/11_组内基线与差异表.md`、
-   `docs/08_HQC技术路线.md`、`docs/09_工程约束与验证规范.md`、`docs/10_团队分工与国家级指标.md`，
-   以及本次要改模块对应的 `docs/contracts/*.md`。
+1. **读约束**：完整阅读 `docs/workflow.md`、`plan.md`、`docs/12_FPGA_ASIC路线.md`、
+   `docs/11_组内基线与差异表.md`、`docs/08_HQC技术路线.md`、`docs/09_工程约束与验证规范.md`、
+   `docs/10_团队分工与国家级指标.md`，以及本次要改模块对应的 `docs/contracts/*.md`。
 2. **核实现状**：先跑
    ```bash
    git rev-parse --abbrev-ref HEAD
@@ -22,7 +22,8 @@
    - ✅ 已实现并验证
    - 🟡 已实现但未验证
    - ⬜ 未实现 / 未接入
-3. **声明范围**：一句话说明本次改哪些文件、验证方式（C/C++ 黄金 / xsim / 上板）、预估行数。
+3. **声明范围 + 契约状态**：一句话说明本次改哪些文件、验证方式（C/C++ 黄金 / xsim / 板端）、预估行数；
+   并明确对应契约是否已冻结。**没有冻结契约 → 不许写实现代码。**
 
 ---
 
@@ -55,6 +56,20 @@
   4. 待办 / 未接入清单（明确标注“未实现 / 未验证”）。
 - 每次工作后在 `docs/records/` 写协作纪录（见 `docs/06`）。
 - **未经用户确认理解，不得 `git commit` / `git push`。**
+
+### 3.1 古法编程与契约冻结（硬性，适用于所有代码线）
+
+> 适用于 Verilog RTL、testbench、C/C++、Python、Tcl、shell/PowerShell 脚本。
+> 不是只约束 RTL。
+
+- **契约先行**：没有冻结的 `docs/contracts/<模块>_v0.md`，不许写任何实现代码；
+  先按 `skill/contract-freeze-workflow/SKILL.md` 起草、评审、冻结。
+- **古法编程**：先给步骤清单；单步 ≤100 行；每步自检 + 讲解 + 2–3 道理解题；
+  **等用户回答通过后才进下一步**。见 `skill/gufa-programming/SKILL.md`。
+- **理解门槛**：commit 前逐段讲解 + 3 题；用户确认理解后才允许提交。
+  见 `skill/understand-gate/SKILL.md`。
+- **三处同步**：接口/数据格式变更必须同步 RTL、tb/系统仿真、C 黄金/KAT/脚本、契约。
+- **不允许**“先写代码、后补契约”；契约未冻结时只允许写契约和验证计划。
 
 ### 4. 编码与综合约束
 
@@ -116,13 +131,17 @@
 
 ## 四、参考入口
 
+- **开发流程（必读）**：`docs/workflow.md`
 - 主计划：`plan.md`
 - HQC 技术路线：`docs/08_HQC技术路线.md`
 - 组内基线与差异：`docs/11_组内基线与差异表.md`
 - **FPGA/ASIC 路线**：`docs/12_FPGA_ASIC路线.md`
 - 工程约束：`docs/09_工程约束与验证规范.md`
 - 分工与指标：`docs/10_团队分工与国家级指标.md`
-- 接口契约：`docs/contracts/README.md`
+- 接口契约：`docs/contracts/README.md` + `docs/contracts/TEMPLATE.md`
+- **古法编程**：`skill/gufa-programming/SKILL.md`
+- **理解门槛**：`skill/understand-gate/SKILL.md`
+- **契约冻结**：`skill/contract-freeze-workflow/SKILL.md`
 - 官方参考实现：`third_party/hqc/VENDORED.md`
 - 协作纪录：`docs/records/README.md` + `TEMPLATE.md`
 - 阅读顺序：`docs/00_新队友阅读顺序.md`
