@@ -90,5 +90,5 @@ decaps  : start_decaps(sk, ct) -> ss[32B]
 - [ ] RS 解码：ePIBM vs BM；是否先复用公开 IP
 - [ ] ASIC 工具（DC/Genus/OpenROAD）；PDK 已确认 55/28/90nm
 - [ ] HQC-192/256 是否进 V0（默认不进）
-- [x] FPGA 板端全功能跑通：**硬目标**（老师已确认）；板卡待定
+- [x] FPGA 板端全功能跑通：**硬目标**（老师已确认）；主 AC701 XC7A200T
 - [x] ASIC 不流片，只做综合评估

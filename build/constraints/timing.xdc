@@ -1,7 +1,9 @@
-# timing.xdc —— HQC 加速器通用时序约束（草案）
+# timing.xdc —— PYNQ-Z2 备用时序约束（草案）
 # 目标：PYNQ-Z2 / Zynq-7020 (xc7z020clg400-1)
 #
-# 板级引脚见 pynq_z2_pins.xdc。
+# 注意：主开发板是 Artix-7 XC7A200T（AC701）。
+# 本文件不作为 AC701 的约束；AC701 需使用官方 master XDC 另建 ac701_pins.xdc。
+# 板级引脚见 pynq_z2_pins.xdc（仅 PYNQ-Z2 备用）。
 # 若使用 MMCM 生成 100 MHz 等频率，请注释掉本文件的 create_clock，
 # 改用 create_generated_clock，并把实际时钟名写进报告。
 

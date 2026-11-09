@@ -121,7 +121,7 @@
 | 快速 lint（可选） | Icarus Verilog | `bash sim/run.sh lint` |
 | FPGA 综合 / 实现 | Vivado 2026.1 | `build/` + `build/constraints/` |
 | ASIC 综合（条件） | Cadence/Synopsys/OpenROAD（待确认）；PDK 55/28/90nm | `asic/` |
-| FPGA 板级验证 | PYNQ-Z2 或实验室板卡（待确认） | `board/`（**硬目标**） |
+| FPGA 板级验证 | AC701 XC7A200T（主）/ XC7A100T（备） | `board/`（**硬目标**） |
 
 - 不以 Icarus 替代 xsim 作为最终 RTL 验证依据；Icarus 只用于快速 lint。
 - 所有仿真日志放 `data/logs/`，FPGA/ASIC 报告放 `data/evidence/`。
