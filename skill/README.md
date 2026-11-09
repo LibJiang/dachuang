@@ -1,15 +1,17 @@
 # 团队技能库（skill）
 
-> 来源：`docs/records/` 中反复验证过的做法、坑、检查项。
+> 来源：`report/llm_log/` 中反复验证过的做法、坑、检查项。
 > 规则：一个条目至少被 2 篇纪录 / 2 个人验证过，才升级为 skill。
 
 ---
 
 ## 索引
 
-| 主题 | 文件 | 来源纪录 | 负责人 |
+| 主题 | 文件 | 状态 | 负责人 |
 |:---|:---|:---|:---|
-| 待建 | — | — | — |
+| 古法编程（契约先行 + 小步交付） | [`gufa-programming/SKILL.md`](gufa-programming/SKILL.md) | **强制** | 全员 |
+| 理解门槛（commit 前 3 题） | [`understand-gate/SKILL.md`](understand-gate/SKILL.md) | **强制** | 全员 |
+| 契约冻结工作流 | [`contract-freeze-workflow/SKILL.md`](contract-freeze-workflow/SKILL.md) | **强制** | 全员 |
 
 ---
 
@@ -43,4 +45,4 @@ description: <何时触发；解决什么问题>
 - 稀疏位置表的存储与循环移位
 - PYNQ-Z2 上板与 AXI-Lite 调试
 
-> 先写 `docs/records/`，不要一上来造 skill。
+> 先写 `report/llm_log/`，不要一上来造 skill。

@@ -24,7 +24,7 @@
 - 新增 `src/mult/sparse_qc_mult.v` 与 `sim/tb_sparse_qc_mult.v`：单路 64-bit 稀疏乘法 baseline；
 - 补齐 `models/golden/`、`sim/run.ps1`、`sim/scripts/`、`data/`、`build/constraints/` 等骨架；
 - 删除过期的 `docs/02_大创推荐选题.md`，并同步 `docs/00` 阅读顺序与离线文档工具；
-- 配套协作纪录：`docs/records/2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md`（RTL baseline 细节）。
+- 配套协作纪录：`report/llm_log/2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md`（RTL baseline 细节）。
 
 ## 验证证据
 
@@ -96,5 +96,5 @@
 - `docs/10_团队分工与国家级指标.md`
 - `docs/11_组内基线与差异表.md`
 - `docs/contracts/README.md`
-- `docs/records/2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md`
+- `report/llm_log/2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md`
 - 参考工程：<https://github.com/never-die-cold/FPGA-Alittle-Design>

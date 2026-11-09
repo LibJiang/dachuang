@@ -25,3 +25,17 @@ report/llm_log/YYYY-MM-DD-<主题>.md
 - AI 产出必须经过你本人复现 + 理解，才能 commit；
 - 不把 AI 生成的内容直接当“原创”；
 - 引用外部代码/论文必须注明来源。
+
+---
+
+## 协作纪录
+
+本目录同时存放团队协作纪录（LLM 日志 + 人工工作记录）：
+
+- 模板：[TEMPLATE.md](TEMPLATE.md)
+- 索引与规范：[RECORDS-README.md](RECORDS-README.md)
+- 完整示例：[EXAMPLE-record.md](EXAMPLE-record.md)
+- 命名：`report/llm_log/YYYY-MM-DD-<成员>-<主题>.md`
+- 通用规范见 `docs/06_协作纪录与技能提炼规范.md`。
+
+> 原 `docs/records/` 已废弃，不再放协作纪录。

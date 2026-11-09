@@ -31,6 +31,7 @@ const GROUPS = [
     title: '新手必读',
     files: [
       'docs/00_新队友阅读顺序.md',
+      'docs/workflow.md',
       'docs/04_GitHub与Git一天上手指南.md',
       'docs/07_新手使用Agent教程.md',
     ],
@@ -43,6 +44,9 @@ const GROUPS = [
       'docs/09_工程约束与验证规范.md',
       'docs/10_团队分工与国家级指标.md',
       'docs/11_组内基线与差异表.md',
+      'docs/12_FPGA_ASIC路线.md',
+      'docs/13_开工清单与近期任务.md',
+      'docs/14_总体工作计划.md',
       'docs/03_前置知识与学习路线.md',
       'docs/05_前置知识补全_从数电到Verilog实战.md',
     ],
@@ -61,9 +65,9 @@ const GROUPS = [
     title: '协作与纪录',
     files: [
       'docs/06_协作纪录与技能提炼规范.md',
-      'docs/records/README.md',
-      'docs/records/TEMPLATE.md',
-      'docs/records/EXAMPLE-record.md',
+      'report/llm_log/RECORDS-README.md',
+      'report/llm_log/TEMPLATE.md',
+      'report/llm_log/EXAMPLE-record.md',
     ],
   },
 ];

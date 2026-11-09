@@ -70,9 +70,9 @@ HQC（Hamming Quasi-Cyclic）是**基于准循环码的 KEM**，NIST 于 2025 �
 |:---|:---|:---|:---|
 | GF(2) 准循环乘法 | 朴素 $O(n^2)$；稀疏 $O(wn)$ | 循环移位 + XOR 累加 + 折叠 | **PL** |
 | RM(1,7) 解码 | 每 128 bit 448 次加/减 | 128 点 FHT | **PL** |
-| RS 解码 | GF(2⁸) BM/Chien/Forney | LUT/复合域乘法 | PS |
-| SHAKE256 | Keccak-f[1600] | 专用核/软件 | PS |
-| 固定重量采样 | 拒绝采样/位置生成 | 软件/恒定时间采样器 | PS |
+| RS 解码 | GF(2⁸) BM/Chien/Forney | LUT/复合域乘法 | **RTL** |
+| SHAKE256 | Keccak-f[1600] | 专用核 | **RTL** |
+| 固定重量采样 | 拒绝采样/位置生成 | 恒定时间采样器 | **RTL** |
 
 ### 关键结构性质 → 硬件
 
@@ -87,33 +87,38 @@ HQC（Hamming Quasi-Cyclic）是**基于准循环码的 KEM**，NIST 于 2025 �
 
 ---
 
-## 五、推荐架构（V0：混合 KEM）
+## 五、推荐架构（V0：完整 RTL）
+
+> 新主题：全 RTL，不再用 PS 做 SHAKE/RS/采样。
+> FPGA 原型 + ASIC 综合评估；参考 `docs/12_FPGA_ASIC路线.md`。
 
 ```mermaid
 flowchart LR
-    PS[PS / ARM Cortex-A9<br/>SHAKE、采样、RS、FO、控制] -->|AXI4-Lite| CTRL[命令/状态]
-    PS <-->|AXI/BRAM| MEM[多项式 BRAM<br/>h,s,u,v,x,y,r1,r2,e]
-    CTRL --> SM[稀疏 QC 乘法器<br/>dense × sparse]
-    CTRL --> RM[RM(1,7) FHT 解码器<br/>+ 重复合并]
+    HOST[Testbench / PS<br/>KAT / 配置] -->|AXI4-Lite| CTRL[hqc_kem_top<br/>KeyGen/Encaps/Decaps]
+    CTRL --> SHAKE[SHAKE256 / Keccak]
+    CTRL --> SAMP[固定重量采样]
+    CTRL --> SM[稀疏 QC 乘法器]
+    CTRL --> RS[RS 编解码 / ePIBM]
+    CTRL --> RM[RM 编解码 / FHT]
+    SHAKE <--> MEM[BRAM]
+    SAMP <--> MEM
     SM <--> MEM
+    RS <--> MEM
     RM <--> MEM
-    SM --> XOR[循环折叠 / 向量 XOR]
-    XOR <--> MEM
 ```
 
 ### 模块清单
 
 | 模块 | 功能 | 阶段 |
 |:---|:---|:---|
-| `sparse_qc_mult` | dense×sparse，移位-异或-折叠 | B |
-| `dense_qc_mult_baseline` | 朴素 $O(n^2)$，只做对照 | B |
-| `gf2_vec` | XOR、循环移位、位置表读取 | B |
-| `rm_fht128` | 128 点 FHT | C |
-| `repetition_combine` | 3/5 份重复软值合并 | C |
-| `rm_encoder` | 8 bit → 128 bit | C |
-| `rs_decoder` | GF(2⁸) BM/Chien/Forney | C（或 PS） |
-| `keccak` | SHAKE256 | C（或 PS） |
-| `hqc_ctrl` | 命令 FSM、地址、DMA | B/C |
+| `sha3/keccak` | SHAKE256、XOF、PRNG | A/M3 |
+| `sampler` | 固定重量采样（w/w_r/w_e） | A/M3 |
+| `sparse_qc_mult` | dense×sparse，移位-异或-折叠 | B/M2 |
+| `dense_qc_mult_baseline` | 朴素 $O(n^2)$，只做对照 | B/M2 |
+| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C/M4 |
+| `rm_codec` | RM 编码 + FHT + 重复合并 | C/M4 |
+| `hqc_kem_top` | KEM/PKE 控制、FO、隐式拒绝 | A/C/M5 |
+| `axi_mmio` | 寄存器/BRAM/DMA | C/M5 |
 
 ---
 
@@ -160,10 +165,10 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 
 建议的贡献表述（候选，需查新确认）：
 
-1. **RISC-V + HQC 协处理器**：组内是固定硬件 KEM；我们做可编程 SoC 集成；
-2. **参数化稀疏乘法设计空间**：1/2/4/8 路、64/128-bit、BRAM banking 的 Pareto；
-3. **混合软硬协同 + C/RTL 协同仿真**：完整 KAT + 延迟分解；
-4. **HQC-192/256 参数化**（增量）；
+1. **完整 RTL + ASIC 综合评估**：组内是 FPGA-only；我们做 area/power/fmax；
+2. **FPGA/ASIC 设计空间**：字宽/并行度/存储/流水的 Pareto；
+3. **开源可复现**：官方 KAT + RTL + 脚本 + 证据链；
+4. **RISC-V 集成**（可选）；
 5. **恒定时间/故障检测**（选做，安全方向）。
 
 **贡献边界表**必须出现在立项书和最终报告里；复现不能写成原创。
@@ -171,20 +176,21 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 
 ---
 
-## 八、验证路线（仿真优先）
+## 八、验证路线（完整 RTL）
 
-> 上板不是 V0 闸门。先把 L0–L4 在 C/C++ + xsim + 综合里跑通，再决定是否上板。
+> 完整 RTL + 官方 KAT 是 V0 闸门；**FPGA 全功能跑通是硬目标**；ASIC 是条件阶段（不流片）。
 
 | 层级 | 对象 | 方法 | 通过标准 |
 |:---|:---|:---|:---|
-| L0 | C/C++ 黄金 | 独立实现 + 官方参考 | 逐 bit 一致 |
+| L0 | C/C++ 黄金 | 官方参考 + 独立实现 | 逐 bit 一致 |
 | L1 | 稀疏乘法 | 随机 dense + 稀疏位置 | 与黄金一致 |
-| L2 | RM FHT | 随机 128 bit 块 | 与参考解码一致 |
-| L3 | KeyGen/Encaps | 官方 KAT | 逐字节一致 |
-| L4 | Decaps | KAT + 负向 + 隐式拒绝 | 逐字节一致；失败路径正确 |
-| L5 | 系统协同仿真 | C 调度 + RTL 模块 | ≥10 组端到端 KAT 全过 |
-| L6 | 综合/PPA | Vivado OOC | 资源/时序/周期数入档 |
-| L7 | 上板（可选） | PYNQ 灌数/读回 | 板端 = 仿真；延迟/资源入档 |
+| L2 | RM/RS | 官方测试向量 | 逐块一致 |
+| L3 | SHAKE/采样 | 官方 KAT | 逐字节一致 |
+| L4 | KeyGen/Encaps/Decaps | 官方 KAT + 负向 | 逐字节一致；隐式拒绝正确 |
+| L5 | 系统仿真 | 完整 RTL + KAT | 100/100；0 mismatch |
+| L6 | FPGA 全功能跑通 + PPA | 板端 KAT + Vivado 综合/实现 | 板端 = 仿真；资源/时序/周期入档 |
+| L7 | ASIC 综合（条件） | 55/28/90nm 综合 + area/power/fmax | 工具可用；不流片 |
+| L8 | 文档/复现 | README + 报告 + 证据链 | 一键复现 |
 
 国家级指标与证据口径见 `docs/10_团队分工与国家级指标.md`。
 
@@ -192,12 +198,14 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 
 ## 九、风险
 
-- **范围**：完整 KEM + 多参数 + 全 RTL 做不完 → V0 只 HQC-128 + 混合。
+- **范围**：完整 RTL + 多参数做不完 → V0 只 HQC-128，先保 KAT。
 - **KAT**：采样/填充/字节序必须官方；否则永远对不上。
-- **RS/Keccak**：自研成本高 → V0 放 PS。
+- **RS/Keccak**：自研成本高 → 可复用公开 IP（注意许可证），但必须自己验证。
 - **组内基线**：SOCC 2023 必须先读；否则原创性边界不清。
-- **侧信道**：稀疏位置是秘密；V0 文档标注，C+ 再做恒定时间/地址混淆。
-- **自研核**：不设为 V0 前置；C 阶段选做。
+- **FPGA 全功能跑通**：板卡未定、时序/外设难 → 尽早确认板卡，预留 4–6 周 bring-up。
+- **ASIC**：PDK 有 55/28/90nm、工具待确认、团队无经验 → 只做综合评估，不碰 P&R、不流片。
+- **侧信道**：稀疏位置是秘密；V0 文档标注，后续再做恒定时间/地址混淆。
+- **自研核**：不设为 V0 前置；可选加分项。
 
 ---
 
