@@ -30,7 +30,7 @@
 1. 用 `docs/contracts/TEMPLATE.md` 起草契约；
 2. 冻结前枚举全部用例（操作码、字段、位宽、状态、参数集）；
 3. 至少 1 名非作者评审；
-4. 评审通过 → 状态改 `冻结`，在 `docs/records/` 写“契约冻结”纪录；
+4. 评审通过 → 状态改 `冻结`，在 `report/llm_log/` 写“契约冻结”纪录；
 5. 实现；
 6. 契约变更 → 新版本 `_v1.md`，旧版本保留，**三处同步**：RTL、tb/系统仿真、C 黄金/KAT/脚本。
 
@@ -105,7 +105,7 @@
 - **RTL**：每个模块必须有自检 tb，xsim 输出 `PASS: N/N checks`；Icarus 只做 lint，不作为最终依据。
 - **C/C++ 黄金**：每个程序支持 `--selftest`，输出 `PASS: N/N`。
 - **完整 KEM**：官方 KAT 100/100；系统仿真 0 mismatch。
-- **证据**：日志放 `data/logs/`，综合/ASIC 报告放 `data/evidence/`，协作纪录放 `docs/records/`。
+- **证据**：日志放 `data/logs/`，综合/ASIC 报告放 `data/evidence/`，协作纪录放 `report/llm_log/`。
 - **禁止**用 `/tmp`、桌面临时文件、聊天里的代码作为“已验证”依据。
 - 任何“已验证”必须能由仓库内命令一键复现。
 
