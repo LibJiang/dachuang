@@ -1,13 +1,21 @@
 ﻿# HQC-KEM-FPGA/ASIC：面向后量子密码 HQC 的完整 RTL 与 FPGA/ASIC 实现
 
 > 南京大学大创项目 · 田静老师课题组方向 · 后量子密码（PQC）· 码密码 HQC
-> **主题：完整 RTL 的 HQC-128 KEM → FPGA 原型 + ASIC 综合评估**
-> **目标：2027-05-31 前完整 RTL 跑通 + 官方 KAT 100/100**
+> **对应老师选题名称：HQC 密钥封装机制的高效硬件实现**
+> **技术主线：低延迟 dense×sparse 乘法（Karatsuba/Toom-Cook 仅示例） + ePIBM/FHT RS/RM 解码 + 三阶段 SHAKE 复用 + 恒定时间**
+> **交付目标：完整 RTL → 官方 KAT 100/100 → FPGA 全功能跑通 → 55/28/90nm ASIC 综合评估**
 
 ## 项目简介
 
 HQC-KEM-FPGA/ASIC 用**完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝），
-用官方 KAT 逐字节验证，给出 FPGA PPA，并在条件允许时做 ASIC 综合评估（area/power/fmax，不流片）。
+用官方 KAT 逐字节验证。按老师选题简介，核心架构包含：
+
+- **低延迟 dense×sparse 多项式乘法器**（移位-异或 + 并行/BRAM banking/流水线）；Karatsuba/Toom-Cook 仅为老师举例，本项目不实现对照；
+- **ePIBM + FHT** 的 RS/RM 级联解码架构；
+- **SHAKE256 在 KeyGen/Encaps/Decaps 三阶段共享复用**；
+- **恒定时间**实现与评估。
+
+在此之上，本项目增加 **FPGA 全功能跑通 + 55/28/90nm ASIC 综合评估 + 设计空间/Pareto + 参数化/开源可复现**，作为国家级大创的量化增量。
 
 当前已完成官方参考实现/KAT **100/100（pk/sk/ss）**；完整 RTL 按
 [`docs/14_总体工作计划.md`](docs/14_总体工作计划.md) 分阶段推进。
@@ -17,14 +25,15 @@ HQC-KEM-FPGA/ASIC 用**完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decap
 ```mermaid
 flowchart LR
     HOST[Testbench / PS<br/>KAT / 配置] -->|AXI4-Lite| TOP[hqc_kem_top<br/>KeyGen / Encaps / Decaps]
-    TOP --> SHAKE[SHAKE256 / Keccak]
-    TOP --> SAMP[固定重量采样]
-    TOP --> SM[稀疏 QC 乘法]
-    TOP --> RS[RS 编解码 / ePIBM]
-    TOP --> RM[RM 编解码 / FHT]
+    TOP --> SHAKE[共享 SHAKE256/Keccak<br/>三阶段复用]
+    TOP --> SAMP[固定重量采样<br/>常数时间]
+    TOP --> PM[多项式乘法<br/>低延迟 dense×sparse 主方案<br/>Karatsuba/Toom-Cook 仅为示例]
+    TOP --> RS[RS 编解码<br/>ePIBM]
+    TOP --> RM[RM 编解码<br/>FHT + 重复合并]
+    TOP --> CT[常数时间比较<br/>FO 重加密]
     SHAKE --- MEM[BRAM]
     SAMP --- MEM
-    SM --- MEM
+    PM --- MEM
     RS --- MEM
     RM --- MEM
     TOP --> REG[状态 / 结果寄存器]
@@ -37,6 +46,9 @@ flowchart LR
 |:---|:---|
 | 官方 KAT | ✅ 100/100（pk/sk/ss） |
 | 完整 RTL | 🟡 分阶段推进 |
+| 低延迟 dense×sparse 乘法器 | ⬜ 待建（主方案）；sparse 基线已有 |
+| 三阶段 SHAKE 复用 | ⬜ 待设计 |
+| 恒定时间 | 🟡 设计约束已写入，RTL/评估未完成 |
 | FPGA 全功能跑通 | ⬜ 硬目标（AC701 200T） |
 | FPGA PPA | ⬜ 待做 |
 | ASIC 综合 | ⬜ 条件阶段；PDK 55/28/90nm，工具待确认 |
@@ -51,7 +63,7 @@ flowchart LR
 
 用 **完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝）：
 
-- **RTL**：SHAKE256、固定重量采样、RS 编解码、RM FHT、稀疏准循环乘法、KEM 控制、AXI/MMIO；
+- **RTL**：三阶段共享 SHAKE256、固定重量采样、**低延迟 dense×sparse 多项式乘法（主方案；Karatsuba/Toom-Cook 仅为示例）**、**ePIBM RS 解码**、RM FHT、KEM 控制、**常数时间比较**、AXI/MMIO；
 - **软件**：官方 HQC 参考实现 + C/C++ 黄金 + KAT，用于逐字节对拍；
 - **仿真**：Vivado xsim 系统级仿真 + 官方 KAT；
 - **FPGA**：**全功能跑通（板端 KAT 100/100 + KeyGen/Encap/Decap）** + 综合/实现 PPA；
@@ -64,19 +76,22 @@ flowchart LR
 
 ## 二、为什么换主题
 
-| 旧方案（已保存到 `hqc-baseline` 分支） | 新方案 |
+| 旧方案（已保存到 `hqc-baseline` 分支） | 新方案（按老师选题简介） |
 |:---|:---|
 | PS+PL 混合，C/C++ 做 SHAKE/RS | **完整 RTL**，所有模块上 PL |
 | 仿真优先，上板最后再定 | **FPGA 全功能跑通 + ASIC 综合评估** |
-| 稀疏乘法 + 完整 KEM 当主线 | 稀疏乘法/FHT/RS/KEM 是**基线**；ASIC 与设计空间是增量 |
+| 稀疏乘法单点，不做低延迟/复用/恒定时间 | **低延迟 dense×sparse 主方案（Karatsuba/Toom-Cook 仅为示例）** |
+| 恒定时间放可选 | **恒定时间必做** |
+| SHAKE 单模块 | **三阶段共享复用** |
+| ASIC 多工艺当主要卖点 | ASIC/设计空间作为老师架构之上的**增量** |
 
-组内 SOCC 2023 的边界：
+组内 SOCC 2023 是**基线**：
 
 - 已做：稀疏乘法、RM FHT、RS ePIBM、完整 HQC-128 KEM；
-- 结果：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz；
-  KeyGen/Encap/Decap = 0.11 / 0.22 / 0.38 ms（Artix-7 xc7a200t-3）。
+- 结果：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz；0.11 / 0.22 / 0.38 ms。
 
-**所以**：稀疏乘法、FHT、RS、完整 KEM 都不能当原创；ASIC 评估是更明确的差异点。
+**老师选题简介进一步要求**：低延迟乘法结构（Karatsuba/Toom-Cook 仅为示例）、ePIBM/FHT 解码、SHAKE 三阶段复用、恒定时间实现与评估。
+**所以**：这些点都是老师给的基线/要求，不能写成我们的原创；我们的增量是 **ASIC 多工艺 + 设计空间/Pareto + 参数化/开源**。
 
 ---
 
@@ -84,13 +99,13 @@ flowchart LR
 
 | 层级 | 内容 | 硬闸门 |
 |:---|:---|:---|
-| **V0 完整 RTL** | HQC-128 全 RTL（SHAKE/采样/RS/RM/乘法/控制） | ✅ |
-| **V0 验证** | 官方 KAT 100/100 + xsim 系统仿真 | ✅ |
+| **V0 完整 RTL** | HQC-128 全 RTL；**低延迟 dense×sparse（Karatsuba/Toom-Cook 仅为示例）**；**ePIBM RS + FHT RM**；**三阶段共享 SHAKE**；**恒定时间** | ✅ |
+| **V0 验证** | 官方 KAT 100/100 + xsim 系统仿真 + 恒定时间评估 | ✅ |
 | **V1 FPGA** | **板端全功能跑通 + KAT 100/100** + 综合/实现 PPA | ✅ **硬目标** |
 | **V2 ASIC** | 55nm 主 / 28nm 对比 / 90nm 兜底；只做综合 + area/power/fmax | 🟡 条件 |
 | **V3 ASIC P&R/流片** | DRC/LVS/signoff/MPW | ⬜ **明确不做（老师已确认不流片）** |
 
-**V0 不做**：HQC-192/256、掩码/侧信道、MPW、全参数集。
+**V0 不做**：HQC-192/256、掩码、MPW、全参数集；但**恒定时间**必须做，不属于“侧信道选做”。
 
 > 主开发板：**AC701 XC7A200T（苏州）**；备选 **XC7A100T**；备用 200T（常州）。
 > Artix-7 无 ARM PS，板端 KAT 走 UART/JTAG/AXI，不照搬 PYNQ overlay。
@@ -103,14 +118,15 @@ flowchart LR
 
 | 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| `sha3/keccak` | SHAKE256、XOF、PRNG | 骆弈宾 |
-| `sampler` | 固定重量采样（w/w_r/w_e） | 骆弈宾 |
-| `sparse_qc_mult` | dense×sparse 准循环乘法 | 曹子墨 |
-| `rs_codec` | RS 编码 + ePIBM/BM 解码 | 曹子墨 |
+| `sha3_shared` | **三阶段共享 SHAKE256/Keccak**、XOF、PRNG | 骆弈宾 |
+| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | 骆弈宾 |
+| `poly_mult` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | 曹子墨 |
+| `sparse_qc_mult` | dense×sparse 核心实现（主方案） | 曹子墨 |
+| `rs_codec` | RS 编码 + **ePIBM** 解码 | 曹子墨 |
 | `rm_codec` | RM 编码 + FHT 解码 + 重复合并 | 曹子墨 |
-| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝 | 骆弈宾 |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较** | 骆弈宾 |
 | `axi_mmio` | 寄存器/BRAM/DMA | 骆弈宾 |
-| `tb/golden` | KAT、C 黄金、系统仿真、PPA | 江力博 |
+| `tb/golden` | KAT、C 黄金、系统仿真、PPA、恒定时间评估 | 江力博/房煦然 |
 
 详细路线见 [docs/12_FPGA_ASIC路线.md](docs/12_FPGA_ASIC路线.md)；
 总体工作表见 [docs/14_总体工作计划.md](docs/14_总体工作计划.md)。
@@ -124,8 +140,8 @@ flowchart LR
 | 里程碑 | 时间 | 交付 | 验收 |
 |:---|:---|:---|:---|
 | M0 基线 | 2026-11-30 | 参考实现、KAT、契约草案 | KAT `100/100 (pk/sk/ss)` |
-| M1 模块 RTL | 2027-01-31 | SHAKE/采样/RS/RM/乘法 | 模块 tb `PASS`；0 mismatch |
-| M2 完整 RTL | 2027-03-15 | KEM Top、系统仿真 | 完整 KAT `100/100`；0 mismatch |
+| M1 模块 RTL | 2027-01-31 | 共享 SHAKE/采样/低延迟 dense×sparse/ePIBM/FHT | 模块 tb `PASS`；0 mismatch |
+| M2 完整 RTL | 2027-03-15 | KEM Top、系统仿真、恒定时间 | 完整 KAT `100/100`；0 mismatch；恒定时间评估 |
 | M3 FPGA | 2027-04-30 | 板端全功能 + PPA | 板端 KAT `100/100`；PPA 报告 |
 | M4 ASIC（条件） | 2027-05-15 | 55/28/90nm 综合 | area/power/fmax 或降级说明 |
 | M5 收尾 | 2027-05-31 | 报告/答辩/冻结 | 全套材料 |
@@ -140,7 +156,10 @@ flowchart LR
 - HQC-128 完整 KEM，**全 RTL**；
 - 官方 KAT **100/100**（先 keygen+decaps，再补 encaps ct）；
 - 系统仿真 100/100；0 mismatch；
-- 负向：篡改 ct → 隐式拒绝。
+- 负向：篡改 ct → 隐式拒绝；
+- **乘法器**：低延迟 dense×sparse 主方案与 C 黄金逐 bit 一致，给出面积/延迟；
+- **SHAKE**：三阶段共享核，给出共享 vs 独立的面积/延迟对比；
+- **恒定时间**：FO 比较、采样、解码、稀疏访问无秘密相关分支/提前返回，评估入档。
 
 ### 6.2 FPGA（V1）
 
@@ -170,12 +189,12 @@ flowchart LR
 | 成员 | 角色 | 负责 | 备注 |
 |:---|:---|:---|:---|
 | **江力博** | 项目负责人 / FPGA 与系统集成 | 进度、Vivado 平台 owner、FPGA bring-up、系统仿真、PPA、repo/CI、ASIC 协调 | **不写 RTL**；总览项目 |
-| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C 黄金 + KAT/验证**、原创性/差异表、验收/答辩 | **不写 RTL**；总览项目 |
-| **骆弈宾** | RTL-A：协议/SHAKE/控制 | SHAKE256、固定重量采样、KEM/PKE 控制、FO/隐式拒绝 | RTL 主力 |
-| **曹子墨** | RTL-B：算术/解码 | 稀疏乘法、RS 编解码、RM FHT、重复合并 | RTL 主力 |
+| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C 黄金 + KAT/验证 + 恒定时间评估**、原创性/差异表、验收/答辩 | **不写 RTL**；总览项目 |
+| **骆弈宾** | RTL-A：协议/SHAKE/控制 | **三阶段共享 SHAKE256**、固定重量采样、KEM/PKE 控制、FO/隐式拒绝、**常数时间比较** | RTL 主力 |
+| **曹子墨** | RTL-B：算术/解码 | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例）、RS ePIBM、RM FHT、重复合并 | RTL 主力 |
 
 - **RTL 线由骆弈宾、曹子墨负责；江力博不写 RTL**，负责 FPGA bring-up / Vivado / 系统集成 / PPA；
-- 房煦然不写 RTL，负责 **C 黄金 + KAT/验证** + 需求/契约/验收；
+- 房煦然不写 RTL，负责 **C 黄金 + KAT/验证 + 恒定时间评估** + 需求/契约/验收；
 - 当前只有江力博的机器有 Vivado：他周五统一跑 xsim + OOC 综合；其他人用 iverilog/Verilator 预检；
 - 详细任务与验收见 [docs/13_开工清单与近期任务.md](docs/13_开工清单与近期任务.md)。
 
@@ -203,6 +222,7 @@ dachuang/
 │  ├─ 12_FPGA_ASIC路线.md
 │  ├─ 13_开工清单与近期任务.md
 │  ├─ 14_总体工作计划.md
+│  ├─ 16_基础补齐清单.md
 │  ├─ workflow.md              # 开发流程与硬约束
 │  ├─ contracts/
 │  └─ records/
@@ -258,18 +278,21 @@ make -C models/golden
 
 | 内容 | 来源 | 本项目工作 |
 |:---|:---|:---|
-| 稀疏乘法 | SOCC 2023 / LEAP | ❌ 不能当原创；做设计空间 |
+| 稀疏乘法（dense×sparse） | SOCC 2023 / LEAP | ❌ 不能当原创；作为主方案实现/优化 |
 | RM FHT | SOCC 2023 | ❌ 不能当原创；实现/验证 |
 | RS ePIBM | SOCC 2023 | ❌ 不能当原创；实现/验证 |
 | 完整 FPGA KEM / 全功能跑通 | SOCC 2023 | ❌ 不能当原创；是硬目标但不是唯一创新 |
+| **低延迟 dense×sparse 乘法** | **老师选题简介** | ❌ 不能当原创；按老师要求实现/评估 |
+| **SHAKE 三阶段复用** | **老师选题简介** | ❌ 不能当原创；按老师要求实现/评估 |
+| **恒定时间架构** | **老师选题简介** | ❌ 不能当原创；必做实现/评估 |
 | **ASIC 多工艺综合（55/28/90nm）** | 本项目 | ✅ **主要差异点** |
 | **FPGA/ASIC 设计空间** | 本项目 | ✅ 候选增量 |
 | 参数化（192/256）/开源可复现 | 本项目 | ✅ 加分项 |
-| RISC-V/恒定时间 | 本项目（选做） | ✅ 可选 |
+| RISC-V 集成 | 本项目（选做） | ✅ 可选 |
 
-**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”。
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”“低延迟乘法结构是我们的创新”“SHAKE 复用是我们的创新”“恒定时间是我们的创新”。
 
-> 国家级增量 = **ASIC 多工艺综合 + 设计空间 + 参数化/开源**；
+> 国家级增量 = **ASIC 多工艺综合 + 设计空间/Pareto + 参数化/开源**；
 > 老师已确认**不流片**，所以只做综合评估，P&R/tapeout 不写进目标。
 
 ---
@@ -286,10 +309,11 @@ make -C models/golden
 8. [FPGA/ASIC 路线](docs/12_FPGA_ASIC路线.md) — **新主题主线**
 9. [开工清单与近期任务](docs/13_开工清单与近期任务.md) — **本周任务**
 10. [总体工作计划](docs/14_总体工作计划.md) — **到 2027-06 的排期**
-11. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
-12. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
-13. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
-14. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
+11. [基础补齐清单](docs/16_基础补齐清单.md) — **只学过数电+信号与系统先读**
+12. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
+13. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
+14. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
+15. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
 
 **接口契约**：[docs/contracts/](docs/contracts/README.md)
 **项目管理**：[plan.md](plan.md) · [AGENTS.md](AGENTS.md)
@@ -307,9 +331,10 @@ make -C models/golden
 - [x] 古法编程 + 契约冻结流程；协作纪录统一到 `report/llm_log/`
 - [ ] A2：encaps ct 字节级一致（需要 NIST DRBG/OpenSSL）
 - [ ] M0（2026-11-30）：契约草案 + 分支/任务/证据目录就绪
-- [ ] M1（2027-01-31）：完整 RTL 契约冻结；SHAKE/采样/RS/RM/乘法 tb `PASS`
-- [ ] M1（2027-01-31）：稀疏乘法 N=17669 随机 1000 组 + OOC 综合
-- [ ] M2（2027-03-15）：KEM Top + 系统仿真 100/100 KAT
+- [ ] M1（2027-01-31）：冻结 `poly_mult_v0`/`sha3_v0`/`rs_codec_v0`/`rm_decoder_v0` 等契约
+- [ ] M1（2027-01-31）：共享 SHAKE/采样/低延迟 dense×sparse/ePIBM/FHT tb `PASS`
+- [ ] M1（2027-01-31）：低延迟 dense×sparse 1000 组随机 + OOC 综合
+- [ ] M2（2027-03-15）：KEM Top + 系统仿真 100/100 KAT + 恒定时间评估
 - [ ] M3（2027-04-30）：**FPGA 全功能跑通（板端 KAT 100/100）+ PPA**
 - [ ] M4（2027-05-15，条件）：ASIC 综合（55nm 主 / 28nm 对比 / 90nm 兜底；不流片）
 - [ ] M5（2027-05-31）：报告/答辩/冻结；2027-06 只修 bug

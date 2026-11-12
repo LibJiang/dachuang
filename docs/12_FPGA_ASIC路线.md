@@ -10,6 +10,7 @@
 ## 1. 为什么换
 
 - 组内 SOCC 2023 已经做了 **FPGA 完整 HQC-128 KEM**（稀疏乘法 + FHT + ePIBM + SHAKE）。
+- 老师选题简介要求：**低延迟乘法器结构**（Karatsuba/Toom-Cook 仅示例）、ePIBM/FHT、SHAKE 三阶段复用、恒定时间；这些是基线，不是我们的原创。
 - 继续做“混合 PS+PL”很难形成国家级增量；**完整 RTL + ASIC 评估**是更明确的差异点。
 - ASIC 方向能回答组内论文没回答的问题：面积、功耗、频率、能效，以及 FPGA/ASIC 设计空间。
 - 代价：工作量大、ASIC 工具/PDK 不确定、团队没有 ASIC 经验。因此 ASIC 设为**条件阶段**，不是 V0 硬闸门。
@@ -20,8 +21,8 @@
 
 | 层级 | 内容 | 是否硬闸门 |
 |:---|:---|:---|
-| **V0 完整 RTL** | HQC-128 KeyGen / Encaps / Decaps 全 RTL；SHAKE、采样、RS、RM、稀疏乘法、控制 | ✅ |
-| **V0 验证** | C/C++ 官方参考 KAT；RTL 系统仿真；100/100 KAT | ✅ |
+| **V0 完整 RTL** | HQC-128 KeyGen / Encaps / Decaps 全 RTL；**三阶段共享 SHAKE**、采样、RS ePIBM、RM FHT、**低延迟 dense×sparse 乘法**、控制、**恒定时间比较** | ✅ |
+| **V0 验证** | C/C++ 官方参考 KAT；RTL 系统仿真；100/100 KAT；恒定时间评估 | ✅ |
 | **V1 FPGA** | **板端全功能跑通 + KAT 100/100** + Vivado PPA | ✅ **硬目标** |
 | **V2 ASIC** | 55nm 主 / 28nm 对比 / 90nm 兜底；综合 + area/power/fmax | 🟡 条件允许 |
 | **V3 ASIC P&R** | DRC/LVS/signoff/流片 | ⬜ **明确不做（老师已确认不流片）** |
@@ -38,15 +39,15 @@
                     │  KeyGen / Encaps / Decaps control FSM   │
                     └───────┬───────────┬───────────┬─────────┘
                             │           │           │
-                    ┌───────▼───┐ ┌─────▼─────┐ ┌───▼────────┐
-                    │ SHAKE256  │ │ Sampler   │ │ RS Enc/Dec │
-                    │ Keccak    │ │ fixed wt  │ │ GF(2^8)    │
-                    └───────────┘ └───────────┘ └───┬────────┘
+                     ┌───────▼───┐ ┌─────▼─────┐ ┌───▼────────┐
+                     │ Shared    │ │ Sampler   │ │ RS Enc/Dec │
+                     │ SHAKE256  │ │ fixed wt  │ │ ePIBM      │
+                     └───────────┘ └───────────┘ └───┬────────┘
                                                     │
-                    ┌───────────┐ ┌───────────┐ ┌───▼────────┐
-                    │ Sparse QC │ │ RM FHT    │ │ Repetition │
-                    │ Multiplier│ │ Decoder   │ │ Combine    │
-                    └───────────┘ └───────────┘ └────────────┘
+                     ┌───────────┐ ┌───────────┐ ┌───▼────────┐
+                     │ Low-lat.  │ │ RM FHT    │ │ Repetition │
+                     │ d×s mult  │ │ Decoder   │ │ Combine    │
+                     └───────────┘ └───────────┘ └────────────┘
                             │
                     ┌───────▼─────────────────────────────────┐
                     │ BRAM / AXI4-Lite / MMIO / 控制寄存器     │
@@ -57,12 +58,13 @@
 
 | 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| `sha3/keccak` | SHAKE256、XOF、PRNG | A |
-| `sampler` | 固定重量采样（w/w_r/w_e） | A |
-| `sparse_qc_mult` | dense×sparse 准循环乘法 | B |
-| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C |
+| `sha3_shared` | 三阶段共享 SHAKE256/Keccak、XOF、PRNG | A |
+| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | A |
+| `poly_mult` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | B |
+| `sparse_qc_mult` | dense×sparse 核心实现（主方案） | B |
+| `rs_codec` | RS 编码 + ePIBM 解码 | C |
 | `rm_codec` | RM 编码 + FHT 解码 + 重复合并 | C |
-| `hqc_kem_top` | KeyGen/Encaps/Decaps 控制、FO、隐式拒绝 | A/C |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps 控制、FO、隐式拒绝、**常数时间比较** | A/C |
 | `axi_mmio` | 寄存器/BRAM/DMA（V1） | C |
 | `tb/golden` | C 黄金、KAT、系统仿真、PPA | D |
 
@@ -74,10 +76,10 @@
 
 | 角色 | 负责 | 备注 |
 |:---|:---|:---|
-| **A 协议与 SHAKE/采样** | KEM/PKE 控制、FO、隐式拒绝、SHAKE256、固定重量采样 | 不需要 Vivado |
-| **B 稀疏乘法 + Vivado** | `sparse_qc_mult`、存储、设计空间；xsim/综合/PPA | 你的主责 |
-| **C RS/RM 数据通路** | RS 编解码、RM FHT、重复合并、AXI/MMIO | 可用 iverilog 预检 |
-| **D 验证与评测** | KAT、C 黄金、随机向量、回归、报告、ASIC 评估 | 与 A/C 配合 |
+| **A 协议与 SHAKE/采样** | KEM/PKE 控制、FO、隐式拒绝、**三阶段共享 SHAKE256**、固定重量采样、**常数时间比较** | 不需要 Vivado |
+| **B 低延迟乘法 + Vivado** | **低延迟 dense×sparse 主方案**、存储、设计空间；xsim/综合/PPA | RTL-B 主责 |
+| **C RS/RM 数据通路** | RS ePIBM、RM FHT、重复合并、AXI/MMIO | 可用 iverilog 预检 |
+| **D 验证与评测** | KAT、C 黄金、随机向量、回归、**恒定时间评估**、报告、ASIC 评估 | 与 A/C 配合 |
 
 ---
 
@@ -101,7 +103,8 @@
 - HQC-128 完整 KEM，**全 RTL**；
 - 官方 KAT **100/100**（先 keygen+decaps，再补 encaps ct）；
 - RTL 系统仿真 100/100；0 mismatch；
-- 负向：篡改 ct → 隐式拒绝。
+- 负向：篡改 ct → 隐式拒绝；
+- **恒定时间**：FO 比较/采样/解码/位置访问无秘密相关分支。
 
 ### 6.2 FPGA（V1）
 
@@ -131,14 +134,17 @@
 组内 SOCC 2023 已做：稀疏乘法、FHT、ePIBM、完整 FPGA KEM。
 **这些不能当原创。**
 
+老师选题简介要求：低延迟乘法器结构（Karatsuba/Toom-Cook 仅示例）、ePIBM/FHT、SHAKE 三阶段复用、恒定时间。**这些也是基线，不能当原创。**
+
 我们的候选增量：
 
 1. **ASIC 多工艺综合（55/28/90nm）**（组内论文是 FPGA-only）；
-2. **FPGA/ASIC 设计空间**（字宽、并行度、存储、流水线）；
-3. **参数化/开源可复现**（HQC-128/192/256 + 官方 KAT + 脚本 + 证据链）；
-4. 可选：RISC-V 集成 / 恒定时间。
+2. **低延迟 dense×sparse FPGA/ASIC 设计空间**（LANES/BRAM/移位/流水线 Pareto）；
+3. **SHAKE 共享/独立 + 恒定时间开销的联合评估**；
+4. **参数化/开源可复现**（HQC-128/192/256 + 官方 KAT + 脚本 + 证据链）；
+5. 可选：RISC-V 集成。
 
-**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”。
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”“低延迟乘法结构是我们的创新”“SHAKE 复用是我们的创新”“恒定时间是我们的创新”。
 
 ---
 

@@ -32,6 +32,7 @@ const GROUPS = [
     files: [
       'docs/00_新队友阅读顺序.md',
       'docs/workflow.md',
+      'docs/16_基础补齐清单.md',
       'docs/04_GitHub与Git一天上手指南.md',
       'docs/07_新手使用Agent教程.md',
     ],
@@ -56,6 +57,9 @@ const GROUPS = [
     files: [
       'docs/contracts/README.md',
       'docs/contracts/hqc_kem_v0.md',
+      'docs/contracts/poly_mult_v0.md',
+      'docs/contracts/sha3_v0.md',
+      'docs/contracts/rs_codec_v0.md',
       'docs/contracts/sparse_qc_mult_v0.md',
       'docs/contracts/rm_decoder_v0.md',
       'docs/contracts/axi_mmio_v0.md',

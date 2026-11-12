@@ -13,6 +13,7 @@
 ### 1.1 一句话目标
 
 用 **完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝），
+按老师选题简介落实四项核心：**低延迟 dense×sparse 乘法（Karatsuba/Toom-Cook 仅示例）**、**ePIBM/FHT RS/RM 解码**、**SHAKE 三阶段复用**、**恒定时间**；
 用官方 KAT 逐字节验证，**在 FPGA 上全功能跑通并给出 PPA**；
 ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R、不流片**。
 
@@ -22,8 +23,8 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 |:---|:---|:---|
 | 算法 | HQC-128 完整 KEM | HQC-192/256（后续） |
 | 软件 | 官方参考实现 + KAT + C 黄金 | 应用层协议 |
-| 硬件 | 全 RTL：SHAKE、采样、RS、RM、稀疏乘法、控制、AXI | 掩码/侧信道 |
-| 验证 | 系统仿真 + 官方 KAT 100/100 | 功耗采集 |
+| 硬件 | 全 RTL：**共享 SHAKE**、采样、**低延迟 dense×sparse 主方案（Karatsuba/Toom-Cook 仅为示例）**、**ePIBM RS**、RM FHT、控制、AXI、**恒定时间** | 掩码 |
+| 验证 | 系统仿真 + 官方 KAT 100/100 + **恒定时间评估** | 功耗采集 |
 | FPGA | **板端全功能跑通 + KAT 100/100** + PPA | 主 AC701 XC7A200T；备 100T |
 | ASIC | 55/28/90nm 综合 + area/power/fmax | P&R/流片（老师确认不做） |
 
@@ -45,7 +46,7 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | 类别 | 目标 |
 |:---|:---|
 | 功能 | HQC-128 完整 KEM；官方 KAT 100/100；0 mismatch；隐式拒绝 |
-| RTL | 全 RTL；SHAKE/采样/RS/RM/乘法/控制/接口 |
+| RTL | 全 RTL；**共享 SHAKE/采样/低延迟 dense×sparse（Karatsuba/Toom-Cook 仅为示例）/ePIBM RS/RM FHT/控制/接口/恒定时间** |
 | FPGA | **板端全功能跑通 + KAT 100/100**；记录 LUT/FF/BRAM/Fmax/cycles；参考 SOCC 2023：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz |
 | ASIC | 55nm 主 / 28nm 对比 / 90nm 兜底；综合 + area/power/fmax；**不流片** |
 | 原创 | ASIC 多工艺评估 + 设计空间 + 参数化/开源可复现 |
@@ -83,7 +84,7 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 ### P0 启动与基线（2026-11-06 ~ 2026-11-30）
 
 - 官方参考实现、KAT、C 黄金、xsim 环境；
-- 契约草案（SHAKE/采样/RS/RM/乘法/KEM Top/AXI）；
+- 契约草案（`sha3_v0` 共享 SHAKE / `sampler_v0` / `poly_mult_v0` 低延迟 dense×sparse / `sparse_qc_mult_v0` 主方案 / `rs_codec_v0` ePIBM / `rm_decoder_v0` / `hqc_kem_v0` 恒定时间 / `axi_mmio_v0`）；
 - 分支、任务、证据目录、板卡借用登记。
 
 **闸门**：KAT `100/100 (pk/sk/ss)`；契约草案齐；分支/任务/证据目录就绪。
@@ -91,21 +92,22 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 ### P1 核心模块 RTL（2026-12-01 ~ 2027-01-31）
 
 - **第 1 周先冻结契约**；契约未冻结不写 RTL/C/脚本；
-- 骆弈宾：SHAKE256/Keccak、固定重量采样、KEM 控制 FSM；
-- 曹子墨：稀疏乘法、RS 编解码、RM FHT、重复合并；
+- 骆弈宾：**三阶段共享 SHAKE256**、固定重量采样、KEM 控制 FSM、**常数时间比较**；
+- 曹子墨：**低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例）、**ePIBM RS**、RM FHT、重复合并；
 - 江力博：系统仿真框架、Vivado 环境、周五 xsim/综合；
-- 房煦然：KAT/C 黄金、契约冻结、验收清单、差异表。
+- 房煦然：KAT/C 黄金、契约冻结、验收清单、差异表、**恒定时间评估**。
 
-**闸门**：模块 tb `PASS`；稀疏乘法 N=17669 随机 1000 组 0 mismatch。
+**闸门**：模块 tb `PASS`；**低延迟 dense×sparse 1000 组 0 mismatch**；SHAKE 共享/独立面积对比完成。
 
 ### P2 完整 RTL 集成（2027-02-01 ~ 2027-03-15）
 
 - KEM Top + FO + 隐式拒绝；
 - 系统仿真（C 调度 + RTL 模块）；
 - 完整 RTL KAT 对拍；
-- 负向测试：篡改密文 → 隐式拒绝。
+- 负向测试：篡改密文 → 隐式拒绝；
+- **恒定时间**：FO 比较、采样、解码、稀疏访问。
 
-**闸门**：完整 RTL KAT `100/100`；0 mismatch；负向通过。
+**闸门**：完整 RTL KAT `100/100`；0 mismatch；负向通过；恒定时间评估入档。
 
 ### P3 FPGA 全功能跑通 + PPA（2027-03-16 ~ 2027-04-30）
 
@@ -152,11 +154,14 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 
 | 契约 | 内容 | 状态 |
 |:---|:---|:---|
-| `hqc_kem_v0.md` | KEM API、全 RTL 模块、数据格式、KAT | 草案（全 RTL） |
-| `sparse_qc_mult_v0.md` | 稠密/稀疏、接口、延迟 | 草案 |
+| `hqc_kem_v0.md` | KEM API、全 RTL 模块、数据格式、KAT、恒定时间 | 草案 |
+| `poly_mult_v0.md` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | 草案 |
+| `sparse_qc_mult_v0.md` | dense×sparse 核心实现（主方案） | 草案（主方案） |
+| `sha3_v0.md` | **三阶段共享 SHAKE256/Keccak** | 草案 |
+| `rs_codec_v0.md` | RS(46,16) + **ePIBM** | 草案 |
 | `rm_decoder_v0.md` | RM FHT、重复合并 | 草案 |
 | `axi_mmio_v0.md` | AXI4-Lite/BRAM | 草案 |
-| 待建 | `sha3_v0.md`、`sampler_v0.md`、`rs_codec_v0.md` | 未建 |
+| `sampler_v0.md` | 固定重量采样（常数时间） | 待建 |
 
 **冻结规则**：模块 RTL 开始前冻结对应契约；冻结后改动同步所有依赖。
 
@@ -172,6 +177,9 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | ASIC 工具不确定 | 无法做 ASIC | 假设至少一种可用；没有就降级为 ASIC 导向 RTL + FPGA PPA |
 | 团队无 ASIC 经验 | 流程踩坑 | 只做综合评估；找师兄/老师带；不碰 P&R |
 | SHAKE/RS 自研周期长 | 主线延期 | 先复用公开 IP 或 C 黄金对拍；RTL 逐步替换 |
+| **低延迟 dense×sparse 时序/面积不达标** | 乘法器主线风险 | 先做单路原型；LANES/BRAM banking/移位实现做 Pareto |
+| **SHAKE 共享导致调度冲突** | 三阶段串行变慢 | 共享 vs 独立面积/延迟对比；必要时双缓冲/部分共享 |
+| **恒定时间开销过大** | 性能下降 | 先保证比较/采样/解码无分支；再评估 TVLA/时序方差 |
 | KAT 字节级对不上 | 无法证明完整 | 全用官方参考；先 pk/sk/ss，再补 encaps |
 | 组内已做 FPGA 完整 KEM | 原创性弱 | 差异点放 ASIC 多工艺/设计空间/开源；写差异表 |
 | 只有一台 Vivado | 单点瓶颈 | 江力博平台 owner；周五批处理；第二人装免费 Vivado |
@@ -183,15 +191,22 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 组内 SOCC 2023 已做：稀疏乘法、RM FHT、RS ePIBM、完整 FPGA KEM。
 **这四项不能当原创。**
 
+| 老师简介要求（基线，不作为我们的原创） | 我们的工作 |
+|:---|:---|
+| 低延迟 dense×sparse 乘法（Karatsuba/Toom-Cook 仅示例） | 实现 + 低延迟优化 + 设计空间 |
+| ePIBM + FHT RS/RM 解码 | 实现 + 验证 |
+| SHAKE 三阶段共享复用 | 实现 + 共享/独立面积对比 |
+| 恒定时间硬件与评估 | 实现 + 评估 |
+| 完整 HQC-128 KEM | 实现 + 官方 KAT |
+
 | 候选增量 | 说明 | 证明 |
 |:---|:---|:---|
 | **ASIC 多工艺综合（55/28/90nm）** | 组内是 FPGA-only | 三个节点的 area/power/fmax |
 | **FPGA/ASIC 设计空间** | 字宽/并行度/存储/流水线 | Pareto |
 | **参数化/开源可复现** | HQC-128/192/256 + KAT + 脚本 | 仓库一键复现 |
 | RISC-V 集成（可选） | 可编程 SoC | 接口/KAT |
-| 恒定时间（可选） | 安全增强 | 侧信道实验 |
 
-**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”。
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”“低延迟乘法结构是我们的创新”“SHAKE 复用是我们的创新”“恒定时间是我们的创新”。
 **FPGA 全功能跑通是硬目标，但组内 SOCC 2023 已做；国家级增量靠 ASIC 多工艺/设计空间/参数化/开源。**
 
 ---
@@ -201,9 +216,9 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | 成员 | 角色 | 负责 | 交付 | 备注 |
 |:---|:---|:---|:---|:---|
 | **江力博** | 项目负责人 / FPGA 与系统集成 | 进度、Vivado 平台 owner、FPGA bring-up、系统仿真、PPA、repo/CI、ASIC 协调 | FPGA 板级日志、系统仿真、PPA 报告、周报 | **不写 RTL**；总览项目 |
-| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C/C++ 黄金 + KAT/验证**、原创性/差异表、验收/答辩 | 需求文档、契约、KAT 日志、差异表、验收清单 | **不写 RTL**；总览项目 |
-| **骆弈宾** | RTL-A：协议/SHAKE/控制 | SHAKE256/Keccak、固定重量采样、KEM/PKE 控制 FSM、FO/隐式拒绝 | RTL、tb、KAT 对拍 | RTL 主力 |
-| **曹子墨** | RTL-B：算术/解码 | 稀疏乘法、RS 编解码、RM FHT、重复合并 | RTL、tb、PPA | RTL 主力 |
+| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C/C++ 黄金 + KAT/验证 + 恒定时间评估**、原创性/差异表、验收/答辩 | 需求文档、契约、KAT 日志、差异表、验收清单 | **不写 RTL**；总览项目 |
+| **骆弈宾** | RTL-A：协议/SHAKE/控制 | **三阶段共享 SHAKE256**、固定重量采样、KEM/PKE 控制 FSM、FO/隐式拒绝、**常数时间比较** | RTL、tb、KAT 对拍 | RTL 主力 |
+| **曹子墨** | RTL-B：算术/解码 | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例）、RS ePIBM、RM FHT、重复合并 | RTL、tb、PPA | RTL 主力 |
 
 **硬分工**：
 
@@ -212,6 +227,55 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 - 江力博与房煦然共同维护 `plan.md` / `README.md` / `docs/`，确保两人了解全项目。
 - 当前只有江力博的机器有 Vivado：他是 Vivado 平台 owner，周五统一跑 xsim + OOC 综合；其他人用 iverilog/Verilator 预检。
 - 详细任务与验收见 `docs/13_开工清单与近期任务.md`。
+
+### §8.1 RTL 线阶段分工与验收
+
+> RTL 线只由 **骆弈宾（RTL-A）**、**曹子墨（RTL-B）** 写。
+> 江力博负责系统集成/Vivado/PPA；房煦然负责契约、KAT/C 黄金、验收。
+> **契约未冻结，不写 RTL；每步按古法编程，≤100 行，出题通过再继续。**
+
+#### A. RTL 线职责边界
+
+| 成员 | RTL 线 | 负责模块 | 不负责 |
+|:---|:---|:---|:---|
+| **骆弈宾** | RTL-A：协议/SHAKE/控制 | `sha3_shared`（三阶段共享）、`sampler`、`hqc_kem_top`（KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较**）、`axi_mmio` | 多项式乘法、RS/RM、FPGA 板级/PPA |
+| **曹子墨** | RTL-B：算术/解码 | `poly_mult`（**低延迟 dense×sparse 主方案**）、`sparse_qc_mult`（主实现）、`rs_codec`（**ePIBM**）、`rm_codec`（FHT+重复合并） | SHAKE/采样、KEM 控制、板级/PPA |
+
+#### B. 分阶段任务与验收
+
+| 阶段 | 时间 | 骆弈宾（RTL-A） | 曹子墨（RTL-B） | 阶段验收 |
+|:---|:---|:---|:---|:---|
+| **P0 契约** | 2026-11 | 起草 `sha3_v0`（共享）、`sampler_v0`；不写 RTL | 起草 `poly_mult_v0`（低延迟 dense×sparse；Karatsuba/Toom-Cook 仅为示例）、`rs_codec_v0`（ePIBM）；更新 `sparse_qc_mult_v0`、`rm_decoder_v0`；不写 RTL | 契约草案完成、评审通过、冻结记录 |
+| **P1 模块** | 2026-12 ~ 2027-01 | 三阶段共享 SHAKE256、固定重量采样、KEM 控制 FSM、常数时间比较第一版 | 低延迟 dense×sparse 主方案、ePIBM RS、RM FHT、重复合并第一版 | 模块 tb 通过；dense×sparse 1000 组 0 mismatch；SHAKE/采样/RS/RM 对官方向量 PASS；共享/独立面积对比 |
+| **P2 集成** | 2027-02 ~ 2027-03-15 | KEM Top、FO、隐式拒绝、AXI/MMIO、恒定时间 | 乘法/RS/RM 接口集成、周期初测 | 完整 RTL KAT 100/100；系统仿真 0 mismatch；负向 + 恒定时间评估通过 |
+| **P3 FPGA** | 2027-03-16 ~ 2027-04-30 | 控制/SHAKE 时序优化；板端调试支持 | 乘法/RS/RM 时序优化；板端调试支持 | 板端全功能跑通 + KAT 100/100；LUT/FF/BRAM/Fmax/cycles 入档 |
+| **P4 ASIC** | 2027-05-01 ~ 2027-05-15 | ASIC 导向检查（无 FPGA 原语）、参数化 | 设计空间（字宽/1-2-4-8 路/BRAM banking） | 55/28/90nm 综合数据；Pareto 初稿 |
+| **P5 冻结** | 2027-05-16 ~ 2027-05-31 | 代码冻结、模块 README/注释补齐 | 代码冻结、PPA/设计空间归档 | 冻结 commit；报告/答辩材料可复现 |
+
+#### C. 模块级验收矩阵
+
+| 模块 | 负责人 | 冻结契约 | 验证方式 | 通过标准 |
+|:---|:---|:---|:---|:---|
+| `sha3_shared` | 骆弈宾 | `sha3_v0.md` | 官方 SHAKE/XOF 向量 + 三阶段调度 | `PASS: N/N`；共享面积对比 |
+| `sampler` | 骆弈宾 | `sampler_v0.md` | 官方 KAT 采样 | 与官方位置/字节一致；常数时间 |
+| `hqc_kem_top` | 骆弈宾 | `hqc_kem_v0.md` | 官方 KAT + 负向 + 恒定时间 | 100/100；隐式拒绝正确 |
+| `axi_mmio` | 骆弈宾 | `axi_mmio_v0.md` | 系统 tb / 寄存器读写 | 读写/中断/错误行为符合契约 |
+| `poly_mult` | 曹子墨 | `poly_mult_v0.md` | C 黄金 + 低延迟 dense×sparse | 1000 组 0 mismatch；PPA |
+| `sparse_qc_mult` | 曹子墨 | `sparse_qc_mult_v0.md` | C 黄金 + 随机 | 1000 组 0 mismatch（主实现） |
+| `rs_codec` | 曹子墨 | `rs_codec_v0.md` | `rs.tv` | `PASS: N/N`；ePIBM |
+| `rm_codec` | 曹子墨 | `rm_decoder_v0.md` | 官方 RM 向量 | 逐块一致 |
+| 恒定时间 | 房煦然/骆弈宾 | `hqc_kem_v0.md` | 时序方差/TVLA/人工审查 | 无秘密相关分支/提前返回 |
+| 系统仿真 | 江力博 | `hqc_kem_v0.md` | 完整 RTL KAT | 100/100；0 mismatch |
+| FPGA PPA | 江力博 | — | Vivado 综合/实现 | 资源/时序/周期入档 |
+| 验收签字 | 房煦然 | 全部契约 | 按本表逐项核对 | 证据齐全、可复现 |
+
+#### D. 交付与证据规则
+
+- 每个模块必须有：冻结契约、RTL、自检 tb、日志、协作纪录。
+- 每步结束四件套：改了哪些文件、验证命令与原始结果、`git diff --check`、未完成清单。
+- 接口/格式变更必须三处同步：RTL、tb/系统仿真、C 黄金/KAT/脚本、契约。
+- 周五集成：骆/曹交 RTL 与 tb → 江力博跑 xsim/综合/板端 → 房煦然验收。
+- 没有“PASS”证据的模块，不算完成；没有冻结契约的模块，不许开工。
 
 ---
 

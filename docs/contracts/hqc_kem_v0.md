@@ -27,13 +27,16 @@ decaps  : start_decaps(sk, ct) -> ss[32B]
 
 | 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| `sha3/keccak` | SHAKE256、XOF、PRNG | A |
-| `sampler` | 固定重量采样（w/w_r/w_e） | A |
-| `sparse_qc_mult` | dense×sparse 准循环乘法 | B |
-| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C |
-| `rm_codec` | RM 编码 + FHT + 重复合并 | C |
-| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝 | A/C |
-| `axi_mmio` | 寄存器/BRAM/DMA | C |
+| `sha3_shared` | **三阶段共享 SHAKE256/Keccak**、XOF、PRNG | 骆弈宾 |
+| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | 骆弈宾 |
+| `poly_mult` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | 曹子墨 |
+| `sparse_qc_mult` | dense×sparse 核心实现（主方案） | 曹子墨 |
+| `rs_codec` | RS 编码 + **ePIBM** 解码 | 曹子墨 |
+| `rm_codec` | RM 编码 + FHT + 重复合并 | 曹子墨 |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较** | 骆弈宾 |
+| `axi_mmio` | 寄存器/BRAM/DMA | 骆弈宾 |
+
+> **恒定时间是必做项**：FO 重加密比较、采样、解码、稀疏访问不得有秘密相关分支/提前返回；评估口径见 `docs/09`。
 
 ---
 
