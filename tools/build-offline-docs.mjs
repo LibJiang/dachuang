@@ -48,6 +48,7 @@ const GROUPS = [
       'docs/12_FPGA_ASIC路线.md',
       'docs/13_开工清单与近期任务.md',
       'docs/14_总体工作计划.md',
+      'docs/17_IP工程化交付清单.md',
       'docs/03_前置知识与学习路线.md',
       'docs/05_前置知识补全_从数电到Verilog实战.md',
     ],

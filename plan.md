@@ -12,10 +12,10 @@
 
 ### 1.1 一句话目标
 
-用 **完整 RTL** 实现 HQC-128 KEM（KeyGen / Encaps / Decaps + FO + 隐式拒绝），
+第一目标：交付**完整 HQC-128 KEM IP 工程**（参数化 RTL + AXI 寄存器映射 + 驱动/裸机示例 + KAT/回归 + FPGA 参考设计 + 集成文档 + release），
 按老师选题简介落实四项核心：**低延迟 dense×sparse 乘法（Karatsuba/Toom-Cook 仅示例）**、**ePIBM/FHT RS/RM 解码**、**SHAKE 三阶段复用**、**恒定时间**；
 用官方 KAT 逐字节验证，**在 FPGA 上全功能跑通并给出 PPA**；
-ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R、不流片**。
+保留 **55/28/90nm ASIC 多工艺综合**作为主要差异点；**有余力再做 ASIC 后端（P&R/STA/DRC/LVS），不流片**。
 
 ### 1.2 功能边界
 
@@ -25,20 +25,22 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | 软件 | 官方参考实现 + KAT + C 黄金 | 应用层协议 |
 | 硬件 | 全 RTL：**共享 SHAKE**、采样、**低延迟 dense×sparse 主方案（Karatsuba/Toom-Cook 仅为示例）**、**ePIBM RS**、RM FHT、控制、AXI、**恒定时间** | 掩码 |
 | 验证 | 系统仿真 + 官方 KAT 100/100 + **恒定时间评估** | 功耗采集 |
-| FPGA | **板端全功能跑通 + KAT 100/100** + PPA | 主 AC701 XC7A200T；备 100T |
-| ASIC | 55/28/90nm 综合 + area/power/fmax | P&R/流片（老师确认不做） |
+| FPGA/IP | **板端全功能跑通 + KAT 100/100** + PPA + **IP 交付包** | 主 AC701 XC7A200T；备 100T |
+| ASIC | 55/28/90nm 综合 + area/power/fmax | 流片不做；后端 P&R/STA 可选，不阻塞 IP 交付 |
 
 > 组内 SOCC 2023 已经做了 FPGA 完整 KEM；本项目不把“稀疏乘法/完整 KEM”当原创，
 > 差异点是 **完整 RTL + ASIC 评估 + 设计空间 + 开源可复现**。
 
 ### 1.3 交付物
 
+- **完整 IP 工程包**：参数化 RTL/filelist、AXI 寄存器映射、驱动/裸机示例、集成指南、release/changelog；
 - 完整 RTL：`src/` 下全部 KEM 模块；
 - 官方 KAT 对拍：`models/kem/harness/` + `third_party/hqc/`；
-- xsim 系统仿真 + 100/100 KAT；
-- **FPGA 板端全功能跑通 + KAT 100/100**；
+- xsim 系统仿真 + 100/100 KAT + 随机回归；
+- **FPGA 板端全功能跑通 + KAT 100/100** + 参考设计/约束/bit；
 - Vivado 综合/实现报告：LUT/FF/BRAM/Fmax/cycles；
 - ASIC 综合报告（条件允许）：55/28/90nm 的 area/power/fmax；
+- ASIC 后端报告（可选，有余力）：P&R/STA/功耗/DRC/LVS，不流片；
 - 技术报告 + 答辩材料 + 协作纪录。
 
 ### 1.4 指标
@@ -46,9 +48,10 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | 类别 | 目标 |
 |:---|:---|
 | 功能 | HQC-128 完整 KEM；官方 KAT 100/100；0 mismatch；隐式拒绝 |
+| IP | **可交付 IP 包**：RTL/filelist、寄存器映射、驱动/裸机示例、集成指南、release、changelog |
 | RTL | 全 RTL；**共享 SHAKE/采样/低延迟 dense×sparse（Karatsuba/Toom-Cook 仅为示例）/ePIBM RS/RM FHT/控制/接口/恒定时间** |
 | FPGA | **板端全功能跑通 + KAT 100/100**；记录 LUT/FF/BRAM/Fmax/cycles；参考 SOCC 2023：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz |
-| ASIC | 55nm 主 / 28nm 对比 / 90nm 兜底；综合 + area/power/fmax；**不流片** |
+| ASIC | 55nm 主 / 28nm 对比 / 90nm 兜底；综合 + area/power/fmax；**不流片**；后端可选 |
 | 原创 | ASIC 多工艺评估 + 设计空间 + 参数化/开源可复现 |
 
 ---
@@ -143,9 +146,10 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | M0 基线 | 2026-11-30 | 参考实现、KAT、契约草案 | KAT `100/100 (pk/sk/ss)` |
 | M1 模块 RTL | 2027-01-31 | SHAKE/采样/RS/RM/乘法 | 模块 tb `PASS`；0 mismatch |
 | M2 完整 RTL | 2027-03-15 | KEM Top、系统仿真 | 完整 KAT `100/100`；0 mismatch |
-| M3 FPGA | 2027-04-30 | 板端全功能 + PPA | 板端 KAT `100/100`；PPA 报告 |
-| M4 ASIC（条件） | 2027-05-15 | 55/28/90nm 综合 | area/power/fmax 或降级说明 |
-| M5 收尾 | 2027-05-31 | 报告/答辩/冻结 | 全套材料 |
+| M3 FPGA/IP | 2027-04-30 | 板端全功能 + PPA + IP 交付包 | 板端 KAT `100/100`；PPA 报告；IP 包可集成 |
+| M4 ASIC 前端（条件） | 2027-05-15 | 55/28/90nm 综合 | area/power/fmax 或降级说明 |
+| M4.5 ASIC 后端（可选） | 2027-05-20 | P&R/STA/功耗/DRC/LVS | 有余力才做；不流片；不阻塞 M5 |
+| M5 收尾 | 2027-05-31 | 报告/答辩/冻结/release | 全套材料 |
 | 缓冲 | 2027-06 | 只修 bug/答辩 | 不加功能 |
 
 ---
@@ -202,7 +206,9 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | 候选增量 | 说明 | 证明 |
 |:---|:---|:---|
 | **ASIC 多工艺综合（55/28/90nm）** | 组内是 FPGA-only | 三个节点的 area/power/fmax |
+| **完整 IP 工程** | 可集成交付：寄存器映射/驱动/文档/release | IP 包 + 集成示例 |
 | **FPGA/ASIC 设计空间** | 字宽/并行度/存储/流水线 | Pareto |
+| **ASIC 后端（可选）** | P&R/STA/功耗/DRC/LVS；不流片 | 后端报告（有余力） |
 | **参数化/开源可复现** | HQC-128/192/256 + KAT + 脚本 | 仓库一键复现 |
 | RISC-V 集成（可选） | 可编程 SoC | 接口/KAT |
 
@@ -215,8 +221,8 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 
 | 成员 | 角色 | 负责 | 交付 | 备注 |
 |:---|:---|:---|:---|:---|
-| **江力博** | 项目负责人 / FPGA 与系统集成 | 进度、Vivado 平台 owner、FPGA bring-up、系统仿真、PPA、repo/CI、ASIC 协调 | FPGA 板级日志、系统仿真、PPA 报告、周报 | **不写 RTL**；总览项目 |
-| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C/C++ 黄金 + KAT/验证 + 恒定时间评估**、原创性/差异表、验收/答辩 | 需求文档、契约、KAT 日志、差异表、验收清单 | **不写 RTL**；总览项目 |
+| **江力博** | 项目负责人 / FPGA 与 IP 集成 | 进度、Vivado 平台 owner、FPGA bring-up、系统仿真、PPA、repo/CI、**IP 打包/release**、ASIC 前端与可选后端协调 | FPGA 板级日志、系统仿真、PPA 报告、IP 包、周报 | **不写 RTL**；总览项目 |
+| **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C/C++ 黄金 + KAT/验证 + 恒定时间评估**、原创性/差异表、**IP 验收/文档**、答辩 | 需求文档、契约、KAT 日志、差异表、验收清单、IP 文档 | **不写 RTL**；总览项目 |
 | **骆弈宾** | RTL-A：协议/SHAKE/控制 | **三阶段共享 SHAKE256**、固定重量采样、KEM/PKE 控制 FSM、FO/隐式拒绝、**常数时间比较** | RTL、tb、KAT 对拍 | RTL 主力 |
 | **曹子墨** | RTL-B：算术/解码 | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例）、RS ePIBM、RM FHT、重复合并 | RTL、tb、PPA | RTL 主力 |
 
@@ -248,9 +254,10 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 | **P0 契约** | 2026-11 | 起草 `sha3_v0`（共享）、`sampler_v0`；不写 RTL | 起草 `poly_mult_v0`（低延迟 dense×sparse；Karatsuba/Toom-Cook 仅为示例）、`rs_codec_v0`（ePIBM）；更新 `sparse_qc_mult_v0`、`rm_decoder_v0`；不写 RTL | 契约草案完成、评审通过、冻结记录 |
 | **P1 模块** | 2026-12 ~ 2027-01 | 三阶段共享 SHAKE256、固定重量采样、KEM 控制 FSM、常数时间比较第一版 | 低延迟 dense×sparse 主方案、ePIBM RS、RM FHT、重复合并第一版 | 模块 tb 通过；dense×sparse 1000 组 0 mismatch；SHAKE/采样/RS/RM 对官方向量 PASS；共享/独立面积对比 |
 | **P2 集成** | 2027-02 ~ 2027-03-15 | KEM Top、FO、隐式拒绝、AXI/MMIO、恒定时间 | 乘法/RS/RM 接口集成、周期初测 | 完整 RTL KAT 100/100；系统仿真 0 mismatch；负向 + 恒定时间评估通过 |
-| **P3 FPGA** | 2027-03-16 ~ 2027-04-30 | 控制/SHAKE 时序优化；板端调试支持 | 乘法/RS/RM 时序优化；板端调试支持 | 板端全功能跑通 + KAT 100/100；LUT/FF/BRAM/Fmax/cycles 入档 |
-| **P4 ASIC** | 2027-05-01 ~ 2027-05-15 | ASIC 导向检查（无 FPGA 原语）、参数化 | 设计空间（字宽/1-2-4-8 路/BRAM banking） | 55/28/90nm 综合数据；Pareto 初稿 |
-| **P5 冻结** | 2027-05-16 ~ 2027-05-31 | 代码冻结、模块 README/注释补齐 | 代码冻结、PPA/设计空间归档 | 冻结 commit；报告/答辩材料可复现 |
+| **P3 FPGA/IP** | 2027-03-16 ~ 2027-04-30 | 控制/SHAKE 时序优化；板端调试支持 | 乘法/RS/RM 时序优化；板端调试支持 | 板端全功能跑通 + KAT 100/100；LUT/FF/BRAM/Fmax/cycles 入档；IP 交付包可集成 |
+| **P4 ASIC 前端** | 2027-05-01 ~ 2027-05-15 | ASIC 导向检查（无 FPGA 原语）、参数化 | 设计空间（字宽/1-2-4-8 路/BRAM banking） | 55/28/90nm 综合数据；Pareto 初稿 |
+| **P4.5 ASIC 后端（可选）** | 2027-05-16 ~ 2027-05-20 | 配合 P&R/STA/功耗/DRC/LVS | 配合后端时序/面积优化 | 有余力才做；不流片；不阻塞冻结 |
+| **P5 冻结** | 2027-05-21 ~ 2027-05-31 | 代码冻结、模块 README/注释补齐 | 代码冻结、PPA/设计空间/后端归档 | 冻结 commit；IP release；报告/答辩材料可复现 |
 
 #### C. 模块级验收矩阵
 
