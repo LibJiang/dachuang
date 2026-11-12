@@ -213,6 +213,53 @@ ASIC 只做综合评估（55nm 主 / 28nm 对比 / 90nm 兜底），**不跑 P&R
 - 当前只有江力博的机器有 Vivado：他是 Vivado 平台 owner，周五统一跑 xsim + OOC 综合；其他人用 iverilog/Verilator 预检。
 - 详细任务与验收见 `docs/13_开工清单与近期任务.md`。
 
+### §8.1 RTL 线阶段分工与验收
+
+> RTL 线只由 **骆弈宾（RTL-A）**、**曹子墨（RTL-B）** 写。
+> 江力博负责系统集成/Vivado/PPA；房煦然负责契约、KAT/C 黄金、验收。
+> **契约未冻结，不写 RTL；每步按古法编程，≤100 行，出题通过再继续。**
+
+#### A. RTL 线职责边界
+
+| 成员 | RTL 线 | 负责模块 | 不负责 |
+|:---|:---|:---|:---|
+| **骆弈宾** | RTL-A：协议/SHAKE/控制 | `sha3/keccak`、`sampler`、`hqc_kem_top`（KeyGen/Encaps/Decaps、FO、隐式拒绝）、`axi_mmio` | 稀疏乘法、RS/RM、FPGA 板级/PPA |
+| **曹子墨** | RTL-B：算术/解码 | `sparse_qc_mult`、`rs_codec`、`rm_codec`（FHT+重复合并） | SHAKE/采样、KEM 控制、板级/PPA |
+
+#### B. 分阶段任务与验收
+
+| 阶段 | 时间 | 骆弈宾（RTL-A） | 曹子墨（RTL-B） | 阶段验收 |
+|:---|:---|:---|:---|:---|
+| **P0 契约** | 2026-11 | 起草 `sha3_v0`、`sampler_v0`；不写 RTL | 起草 `rs_codec_v0`；更新 `sparse_qc_mult_v0`、`rm_decoder_v0`；不写 RTL | 契约草案完成、评审通过、冻结记录 |
+| **P1 模块** | 2026-12 ~ 2027-01 | SHAKE256/Keccak、固定重量采样、KEM 控制 FSM 第一版 | 稀疏乘法、RS 编码/解码、RM FHT、重复合并第一版 | 模块 tb 通过；稀疏乘法 1000 组随机 0 mismatch；SHAKE/采样/RS/RM 对官方向量 PASS |
+| **P2 集成** | 2027-02 ~ 2027-03-15 | KEM Top、FO、隐式拒绝、AXI/MMIO 集成 | 乘法/RS/RM 接口集成、周期初测 | 完整 RTL KAT 100/100；系统仿真 0 mismatch；负向测试通过 |
+| **P3 FPGA** | 2027-03-16 ~ 2027-04-30 | 控制/SHAKE 时序优化；板端调试支持 | 乘法/RS/RM 时序优化；板端调试支持 | 板端全功能跑通 + KAT 100/100；LUT/FF/BRAM/Fmax/cycles 入档 |
+| **P4 ASIC** | 2027-05-01 ~ 2027-05-15 | ASIC 导向检查（无 FPGA 原语）、参数化 | 设计空间（字宽/1-2-4-8 路/BRAM banking） | 55/28/90nm 综合数据；Pareto 初稿 |
+| **P5 冻结** | 2027-05-16 ~ 2027-05-31 | 代码冻结、模块 README/注释补齐 | 代码冻结、PPA/设计空间归档 | 冻结 commit；报告/答辩材料可复现 |
+
+#### C. 模块级验收矩阵
+
+| 模块 | 负责人 | 冻结契约 | 验证方式 | 通过标准 |
+|:---|:---|:---|:---|:---|
+| `sha3/keccak` | 骆弈宾 | `sha3_v0.md` | 官方 SHAKE/XOF 向量 | `PASS: N/N` |
+| `sampler` | 骆弈宾 | `sampler_v0.md` | 官方 KAT 采样 | 与官方位置/字节一致 |
+| `hqc_kem_top` | 骆弈宾 | `hqc_kem_v0.md` | 官方 KAT + 负向 | 100/100；隐式拒绝正确 |
+| `axi_mmio` | 骆弈宾 | `axi_mmio_v0.md` | 系统 tb / 寄存器读写 | 读写/中断/错误行为符合契约 |
+| `sparse_qc_mult` | 曹子墨 | `sparse_qc_mult_v0.md` | C 黄金 + 随机 | 1000 组 0 mismatch |
+| `rs_codec` | 曹子墨 | `rs_codec_v0.md` | `rs.tv` | `PASS: N/N` |
+| `rm_codec` | 曹子墨 | `rm_decoder_v0.md` | 官方 RM 向量 | 逐块一致 |
+| 系统仿真 | 江力博 | `hqc_kem_v0.md` | 完整 RTL KAT | 100/100；0 mismatch |
+| FPGA PPA | 江力博 | — | Vivado 综合/实现 | 资源/时序/周期入档 |
+| 验收签字 | 房煦然 | 全部契约 | 按本表逐项核对 | 证据齐全、可复现 |
+
+#### D. 交付与证据规则
+
+- 每个模块必须有：冻结契约、RTL、自检 tb、日志、协作纪录。
+- 每步结束四件套：改了哪些文件、验证命令与原始结果、`git diff --check`、未完成清单。
+- 接口/格式变更必须三处同步：RTL、tb/系统仿真、C 黄金/KAT/脚本、契约。
+- 周五集成：骆/曹交 RTL 与 tb → 江力博跑 xsim/综合/板端 → 房煦然验收。
+- 没有“PASS”证据的模块，不算完成；没有冻结契约的模块，不许开工。
+
 ---
 
 ## §9 维护规则
