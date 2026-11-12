@@ -60,49 +60,57 @@ HQC（Hamming Quasi-Cyclic）是**基于准循环码的 KEM**，NIST 于 2025 �
 3. 用 m' 重加密得 c'；
 4. 常数时间比较 `c == c'`：成功走 `K = SHAKE(m' || c)`，失败走隐式拒绝 `K = SHAKE(σ || c)`。
 
-> **注意**：Decaps 有一次重加密，所以稀疏乘法与 FHT 各跑两次；延迟预算按两次算。
+> **注意**：Decaps 有一次重加密，所以 dense×sparse 乘法与 FHT 各跑两次；延迟预算按两次算。
 
 ---
 
 ## 四、瓶颈与硬件映射
 
+> 老师选题简介：**稠密多项式乘法占核心计算时间 70% 以上**，要求**低延迟乘法器结构**；Karatsuba/Toom-Cook 只是老师举的例子，**不是硬性要求**。
+> 本项目主方案：**HQC 的 dense×sparse 移位-异或低延迟乘法器**；Karatsuba/Toom-Cook 仅为老师举例，本项目**不实现对照**，避免范围膨胀。
+
 | 运算 | 复杂度 | 硬件映射 | V0 放置 |
 |:---|:---|:---|:---|
-| GF(2) 准循环乘法 | 朴素 $O(n^2)$；稀疏 $O(wn)$ | 循环移位 + XOR 累加 + 折叠 | **PL** |
-| RM(1,7) 解码 | 每 128 bit 448 次加/减 | 128 点 FHT | **PL** |
-| RS 解码 | GF(2⁸) BM/Chien/Forney | LUT/复合域乘法 | **RTL** |
-| SHAKE256 | Keccak-f[1600] | 专用核 | **RTL** |
+| GF(2) dense×sparse（主方案） | \(O(wn)\) | 循环移位 + XOR 累加 + 折叠；LANES/BRAM banking/流水线 | **RTL** |
+| RM(1,7) 解码 | 每 128 bit 448 次加/减 | 128 点 FHT | **RTL** |
+| RS 解码 | GF(2⁸) | **ePIBM** + Chien/Forney | **RTL** |
+| SHAKE256 | Keccak-f[1600] | **三阶段共享核** | **RTL** |
 | 固定重量采样 | 拒绝采样/位置生成 | 恒定时间采样器 | **RTL** |
 
 ### 关键结构性质 → 硬件
 
-| HQC 性质 | 硬件含义 |
+| HQC / 老师要求 | 硬件含义 |
 |:---|:---|
 | GF(2)，无进位 | 乘法 = AND，加法 = XOR，无进位链 |
-| $X^n \equiv 1$ | 高 half 循环折叠回低 half |
-| 私钥/误差固定重量稀疏 | **dense × sparse：按位置移位-异或，$O(wn)$** |
+| \(X^n \equiv 1\) | 高 half 循环折叠回低 half |
+| **稠密多项式乘法是主瓶颈** | 低延迟乘法器；HQC 场景用 **dense×sparse shift-XOR** |
+| 私钥/误差固定重量稀疏 | 按位置移位-异或，\(O(wn)\)；这是主方案 |
+| 低延迟要求 | 并行 LANES、BRAM banking、地址偏移/桶形移位、流水线 XOR |
 | RM(1,7) 是 Hadamard 结构 | 解码 = 128 点快速 Hadamard 变换 |
-| RS 在 GF(2⁸) | 查表/复合域乘法，BM 迭代 |
+| RS 在 GF(2⁸) | 查表/复合域乘法，**ePIBM** 迭代 |
 | 重复码 | 软值合并/多数表决 |
+| 秘密位置/密文 | **恒定时间**访问与比较，不做秘密相关分支 |
 
 ---
 
 ## 五、推荐架构（V0：完整 RTL）
 
-> 新主题：全 RTL，不再用 PS 做 SHAKE/RS/采样。
-> FPGA 原型 + ASIC 综合评估；参考 `docs/12_FPGA_ASIC路线.md`。
+> 全 RTL，不再用 PS 做 SHAKE/RS/采样。
+> 老师四项核心：低延迟 dense×sparse 乘法（Karatsuba/Toom-Cook 仅示例）、ePIBM/FHT、SHAKE 三阶段复用、恒定时间。
+> 我们的增量：FPGA 全功能跑通 + ASIC 55/28/90nm + 设计空间。
 
 ```mermaid
 flowchart LR
     HOST[Testbench / PS<br/>KAT / 配置] -->|AXI4-Lite| CTRL[hqc_kem_top<br/>KeyGen/Encaps/Decaps]
-    CTRL --> SHAKE[SHAKE256 / Keccak]
-    CTRL --> SAMP[固定重量采样]
-    CTRL --> SM[稀疏 QC 乘法器]
-    CTRL --> RS[RS 编解码 / ePIBM]
-    CTRL --> RM[RM 编解码 / FHT]
+    CTRL --> SHAKE[共享 SHAKE256/Keccak<br/>三阶段复用]
+    CTRL --> SAMP[固定重量采样<br/>常数时间]
+    CTRL --> PM[低延迟 dense×sparse 乘法<br/>移位-异或 + 并行/流水线]
+    CTRL --> RS[RS 编解码<br/>ePIBM]
+    CTRL --> RM[RM 编解码<br/>FHT]
+    CTRL --> CT[常数时间比较<br/>FO 重加密]
     SHAKE <--> MEM[BRAM]
     SAMP <--> MEM
-    SM <--> MEM
+    PM <--> MEM
     RS <--> MEM
     RM <--> MEM
 ```
@@ -111,21 +119,25 @@ flowchart LR
 
 | 模块 | 功能 | 阶段 |
 |:---|:---|:---|
-| `sha3/keccak` | SHAKE256、XOF、PRNG | A/M3 |
-| `sampler` | 固定重量采样（w/w_r/w_e） | A/M3 |
-| `sparse_qc_mult` | dense×sparse，移位-异或-折叠 | B/M2 |
-| `dense_qc_mult_baseline` | 朴素 $O(n^2)$，只做对照 | B/M2 |
-| `rs_codec` | RS 编码 + ePIBM/BM 解码 | C/M4 |
-| `rm_codec` | RM 编码 + FHT + 重复合并 | C/M4 |
-| `hqc_kem_top` | KEM/PKE 控制、FO、隐式拒绝 | A/C/M5 |
-| `axi_mmio` | 寄存器/BRAM/DMA | C/M5 |
+| `sha3_shared` | 三阶段共享 SHAKE256/Keccak、XOF、PRNG | A/M3 |
+| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | A/M3 |
+| `poly_mult` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | B/M2 |
+| `sparse_qc_mult` | dense×sparse 核心实现（主方案） | B/M2 |
+| `rs_codec` | RS 编码 + **ePIBM** 解码 | B/M4 |
+| `rm_codec` | RM 编码 + FHT + 重复合并 | B/M4 |
+| `hqc_kem_top` | KEM/PKE 控制、FO、隐式拒绝、常数时间比较 | A/M5 |
+| `axi_mmio` | 寄存器/BRAM/DMA | A/M5 |
 
 ---
 
-## 六、为什么稀疏乘法是核心（但不是原创点）
+## 六、为什么乘法是核心：低延迟 dense×sparse 主方案
 
-> **重要**：组内 SOCC 2023 和 LEAP [8] 已经做了稀疏乘法；本节只解释它为什么是核心，
-> **不把“稀疏乘法算法”本身当原创**。我们的增量在参数化/设计空间/系统集成。
+老师选题简介指出：**稠密多项式乘法占核心计算时间 70% 以上**，要求**低延迟乘法器结构**；Karatsuba/Toom-Cook 是举例，不是固定要求。因此：
+
+- **主方案**：HQC 的 dense×sparse 乘法，按稀疏位置循环移位 + XOR 累加 + 折叠，\(O(wn)\)；
+- **低延迟**：并行 LANES、BRAM banking、地址偏移/桶形移位、流水线 XOR、结果折叠；
+- **不实现对照**：Karatsuba/Toom-Cook 只是老师举例，本项目直接做 dense×sparse，避免范围膨胀；
+- **不允许**：把 Karatsuba/Toom-Cook 写成老师硬性要求或本项目原创。
 
 HQC 的所有乘法都有一个**固定重量稀疏操作数**：
 
@@ -139,40 +151,43 @@ HQC 的所有乘法都有一个**固定重量稀疏操作数**：
 a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 \]
 
-复杂度从 $O(n^2)$ 降到 $O(wn)$。以 HQC-128 为例：
+复杂度从 \(O(n^2)\) 降到 \(O(wn)\)。以 HQC-128 为例：
 
-- 朴素：$17669^2 \approx 3.1 \times 10^8$ 次 bit 运算；
-- 稀疏：$75 \times 17669 \approx 1.33 \times 10^6$ 次 XOR，约 **两个数量级** 的下降。
+- 朴素：\(17669^2 \approx 3.1 \times 10^8\) 次 bit 运算；
+- 稀疏：\(75 \times 17669 \approx 1.33 \times 10^6\) 次 XOR，约 **两个数量级** 的下降。
 
-**架构研究点（这些才是可写的增量）**：
+**架构研究点（可写的增量）**：
 
-1. 并行路数 L（1/2/4/8/16）与 BRAM 端口/ banking 的权衡；
+1. 并行路数 L（1/2/4/8/16）与 BRAM 端口/banking 的权衡；
 2. 循环移位实现：桶形移位 vs 地址偏移 vs 位平面；
 3. 位置表存储与读取（升序、无重复、16 bit）；
-4. 循环折叠与累加的顺序；
+4. 流水线 XOR 累加与循环折叠顺序；
 5. 面积-时间 Pareto 与能效；
-6. 与 RISC-V 的接口（MMIO/自定义指令）和软硬划分。
+6. SHAKE 三阶段共享 vs 独立的面积/延迟；
+7. 恒定时间访问/比较的开销。
 
 ---
 
 ## 七、原创性与组内基线
 
-> **必读**：田静组 2023 年 SOCC 论文
-> “An Efficient Hardware Design for Fast Implementation of HQC”（`docs/01` 论文 #15，DOI 10.1109/SOCC58585.2023.10257054）。
-> **组内已经做了**：稀疏乘法、128-bit/4-bank、RM FHT、RS ePIBM、完整 HQC-128 KEM。
-> 结果：19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz；KeyGen/Encap/Decap = 0.11/0.22/0.38 ms。
-> **所以不能把上述点当原创。** 详细差异见 `docs/11_组内基线与差异表.md`。
+**老师选题简介是技术基线**，以下都是老师给的，不是我们的原创：
 
-建议的贡献表述（候选，需查新确认）：
+- 低延迟乘法器结构（Karatsuba/Toom-Cook 仅为示例；本项目用 dense×sparse）；
+- ePIBM + FHT 的 RS/RM 解码；
+- SHAKE 三阶段资源复用；
+- 恒定时间硬件架构与评估。
 
-1. **完整 RTL + ASIC 综合评估**：组内是 FPGA-only；我们做 area/power/fmax；
-2. **FPGA/ASIC 设计空间**：字宽/并行度/存储/流水的 Pareto；
-3. **开源可复现**：官方 KAT + RTL + 脚本 + 证据链；
-4. **RISC-V 集成**（可选）；
-5. **恒定时间/故障检测**（选做，安全方向）。
+**组内 SOCC 2023 也是基线**：稀疏乘法、128-bit/4-bank、RM FHT、RS ePIBM、完整 HQC-128 KEM；19,794 LUT / 11,079 FF / 68 BRAM / 178 MHz；0.11/0.22/0.38 ms。
 
-**贡献边界表**必须出现在立项书和最终报告里；复现不能写成原创。
-**不要写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”。
+**我们的增量**（候选，需查新确认）：
+
+1. ASIC 多工艺综合（55/28/90nm）与 FPGA/ASIC 对照；
+2. 低延迟 dense×sparse 的设计空间/Pareto（LANES/BRAM/移位/流水线）；
+3. SHAKE 共享/独立的面积-延迟权衡；
+4. 恒定时间与资源复用的联合评估；
+5. 参数化（HQC-128/192/256）与开源可复现。
+
+**不能写**：“首次实现 HQC 硬件”“稀疏乘法是我们的创新”“完整 KEM 是我们的创新”“FPGA 全跑通是我们的创新”“低延迟乘法结构是我们的创新”“SHAKE 复用是我们的创新”“恒定时间是我们的创新”。
 
 ---
 
@@ -183,14 +198,14 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 | 层级 | 对象 | 方法 | 通过标准 |
 |:---|:---|:---|:---|
 | L0 | C/C++ 黄金 | 官方参考 + 独立实现 | 逐 bit 一致 |
-| L1 | 稀疏乘法 | 随机 dense + 稀疏位置 | 与黄金一致 |
+| L1 | dense×sparse 主方案 | 随机 dense + 稀疏位置 + C 黄金 | 1000 组 0 mismatch |
 | L2 | RM/RS | 官方测试向量 | 逐块一致 |
-| L3 | SHAKE/采样 | 官方 KAT | 逐字节一致 |
+| L3 | SHAKE 共享/采样 | 官方 KAT + 三阶段调度 | 逐字节一致；无死锁 |
 | L4 | KeyGen/Encaps/Decaps | 官方 KAT + 负向 | 逐字节一致；隐式拒绝正确 |
-| L5 | 系统仿真 | 完整 RTL + KAT | 100/100；0 mismatch |
-| L6 | FPGA 全功能跑通 + PPA | 板端 KAT + Vivado 综合/实现 | 板端 = 仿真；资源/时序/周期入档 |
-| L7 | ASIC 综合（条件） | 55/28/90nm 综合 + area/power/fmax | 工具可用；不流片 |
-| L8 | 文档/复现 | README + 报告 + 证据链 | 一键复现 |
+| L5 | 恒定时间 | 时序方差/TVLA/人工审查 | 无秘密相关分支/提前返回 |
+| L6 | 系统仿真 | 完整 RTL + KAT | 100/100；0 mismatch |
+| L7 | FPGA 全功能跑通 + PPA | 板端 KAT + Vivado 综合/实现 | 板端 = 仿真；资源/时序/周期入档 |
+| L8 | ASIC 综合（条件） | 55/28/90nm 综合 + area/power/fmax | 工具可用；不流片 |
 
 国家级指标与证据口径见 `docs/10_团队分工与国家级指标.md`。
 
@@ -198,14 +213,14 @@ a \cdot b = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \pmod{X^n-1}
 
 ## 九、风险
 
-- **范围**：完整 RTL + 多参数做不完 → V0 只 HQC-128，先保 KAT。
+- **低延迟 dense×sparse**：时序/面积可能不达标 → 先做单路原型，LANES/BRAM banking/移位实现做 Pareto。
+- **范围控制**：不实现 Karatsuba/Toom-Cook 对照，避免膨胀；主方案直接做 dense×sparse。
+- **SHAKE 共享**：三阶段串行可能变慢 → 共享 vs 独立对比，必要时双缓冲/部分共享。
+- **恒定时间**：开销可能影响性能 → 先保证比较/采样/解码无分支，再评估 TVLA/时序。
 - **KAT**：采样/填充/字节序必须官方；否则永远对不上。
-- **RS/Keccak**：自研成本高 → 可复用公开 IP（注意许可证），但必须自己验证。
-- **组内基线**：SOCC 2023 必须先读；否则原创性边界不清。
 - **FPGA 全功能跑通**：板卡未定、时序/外设难 → 尽早确认板卡，预留 4–6 周 bring-up。
 - **ASIC**：PDK 有 55/28/90nm、工具待确认、团队无经验 → 只做综合评估，不碰 P&R、不流片。
-- **侧信道**：稀疏位置是秘密；V0 文档标注，后续再做恒定时间/地址混淆。
-- **自研核**：不设为 V0 前置；可选加分项。
+- **团队基础**：只学过数电+信号与系统 → 按 `docs/16` 先补 Verilog/C/GF(2)/RS-RM。
 
 ---
 

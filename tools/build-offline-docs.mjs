@@ -57,6 +57,9 @@ const GROUPS = [
     files: [
       'docs/contracts/README.md',
       'docs/contracts/hqc_kem_v0.md',
+      'docs/contracts/poly_mult_v0.md',
+      'docs/contracts/sha3_v0.md',
+      'docs/contracts/rs_codec_v0.md',
       'docs/contracts/sparse_qc_mult_v0.md',
       'docs/contracts/rm_decoder_v0.md',
       'docs/contracts/axi_mmio_v0.md',

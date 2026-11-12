@@ -38,7 +38,7 @@ description: <何时触发；解决什么问题>
 
 ## 候选主题（先积累纪录）
 
-- HQC 稀疏乘法 RTL 对拍流程
+- HQC 低延迟 dense×sparse 乘法 RTL 对拍流程
 - Vivado xsim 批处理脚本
 - KAT 字节级对拍
 - C/C++ 黄金模型与 RTL 位序一致性

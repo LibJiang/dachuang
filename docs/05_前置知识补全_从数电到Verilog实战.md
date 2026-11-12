@@ -52,7 +52,7 @@
 | M2 | 仿真验证 | testbench、激励、自检、`$display`/`$fatal`、波形 | 每个模块都有 tb，能自动打印 PASS/FAIL |
 | M3 | Vivado 流程 | 综合、实现、资源报告、时序报告、约束 | 能看懂 LUT/FF/DSP/BRAM 与 WNS |
 | M4 | 数电衔接 | 组合/时序、建立保持时间、状态机、流水线直觉 | 能画出模块的数据通路和关键路径 |
-| M5 | 数学预备 | GF(2)、多项式环、循环卷积、Hadamard/FHT（HQC 相关） | 能解释 HQC 为什么用稀疏乘法和 RM 解码 |
+| M5 | 数学预备 | GF(2)、多项式环、循环卷积、Hadamard/FHT（HQC 相关） | 能解释 HQC 为什么用 dense×sparse 乘法和 RM 解码 |
 | M6 | Git 协作 | clone、branch、commit、push、PR、冲突 | 能独立发一个 PR 并被合并 |
 
 > 优先级：**M0 → M1 → M2 → M3 → M6** 先打通，M4 边做边补，M5 等做到 HQC 对应模块。
@@ -220,7 +220,7 @@ def mod_reduce(c: int, q: int = 3329) -> int:
 
 ### 第 4 周：小项目 + 协作
 
-- 做一个「参数化 GF(2) 移位/XOR 单元」（为 HQC 稀疏乘法铺垫）。
+- 做一个「参数化 GF(2) 移位/XOR 单元」（为 HQC dense×sparse 乘法铺垫）。
 - 用 C/C++ 写黄金模型，生成 1000 组随机向量对拍。
 - 走一遍 Git：开分支 → 提交 → push → 发 PR → 解决一次冲突。
 - 交付：可综合 RTL + tb + C/C++ 模型 + 一个已合并的 PR。
@@ -238,13 +238,13 @@ def mod_reduce(c: int, q: int = 3329) -> int:
 
 | HQC 模块 | 额外要补 | 可以晚点补 |
 |---|---|---|
-| 稀疏准循环乘法 | GF(2) 运算、循环卷积、移位/XOR、位序 | 多路并行、BRAM banking |
+| 低延迟 dense×sparse 乘法 | GF(2) 运算、循环卷积、移位/XOR、位序 | LANES/BRAM banking/流水线；Karatsuba 仅为示例 |
 | RM(1,7) FHT | Hadamard 变换、软值量化、重复合并 | 与 RS 的联合调试 |
 | KEM 数据通路 | FSM、BRAM 读写、`valid/ready`、AXI-Lite | 上板/PYNQ overlay |
 | C/C++ 黄金 | 位序、KAT、SHAKE/采样/RS 的官方实现 | 性能优化 |
 | 验证/评测 | xsim 自检、随机向量、日志归档 | 功耗/侧信道 |
 
-**建议**：先把第 4 周的「GF(2) 移位 + XOR + 自检 tb」做掉——稀疏乘法直接用得上，也不会白做。
+**建议**：先把第 4 周的「GF(2) 移位 + XOR + 自检 tb」做掉——低延迟 dense×sparse 乘法直接用得上，也不会白做。
 
 ---
 
