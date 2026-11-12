@@ -1,6 +1,8 @@
-# sparse_qc_mult_v0 —— 稀疏准循环乘法器契约（草案）
+# sparse_qc_mult_v0 —— 稀疏准循环乘法器契约（主方案）
 
-> 状态：**草案**，M1 开始前冻结。
+> 状态：**草案（主方案）**，M1 开始前冻结。
+> **主方案：dense×sparse 移位-异或低延迟乘法器。**
+> [`poly_mult_v0.md`](poly_mult_v0.md) 是乘法器族契约；本契约定义核心 sparse 实现。
 > 范围：GF(2)[X]/(X^n−1) 上的 dense × sparse 乘法。
 > 语义：\(c = \bigoplus_{p \in \mathrm{supp}(b)} (a \lll p) \bmod (X^n-1)\)，其中 \(a\) 稠密、\(b\) 稀疏。
 
@@ -113,14 +115,14 @@ prod == C_golden(dense, pos, N)
 
 ---
 
-## 7. 与基线的对比
+## 7. 与朴素 dense 的复杂度对比（仅理论）
 
 | 实现 | 复杂度 | 用途 |
 |:---|:---|:---|
-| `dense_qc_mult_baseline` | \(O(N^2)\) | 正确性对照、加速比基线 |
-| `sparse_qc_mult` | \(O(WN)\) | 本项目核心 |
+| 朴素 dense | \(O(N^2)\) | 仅作复杂度参照，不实现；Karatsuba/Toom-Cook 仅为示例 |
+| `sparse_qc_mult` | \(O(WN)\) | 本项目核心实现 |
 
-对比必须同输入、同输出格式、同仿真条件；报告给出周期数、LUT/FF/BRAM、Fmax。
+不实现 dense/Karatsuba/Toom-Cook 对照；报告只给 sparse 主方案的周期数、LUT/FF/BRAM、Fmax。
 
 ---
 
