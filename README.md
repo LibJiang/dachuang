@@ -203,6 +203,7 @@ dachuang/
 │  ├─ 12_FPGA_ASIC路线.md
 │  ├─ 13_开工清单与近期任务.md
 │  ├─ 14_总体工作计划.md
+│  ├─ 16_基础补齐清单.md
 │  ├─ workflow.md              # 开发流程与硬约束
 │  ├─ contracts/
 │  └─ records/
@@ -286,10 +287,11 @@ make -C models/golden
 8. [FPGA/ASIC 路线](docs/12_FPGA_ASIC路线.md) — **新主题主线**
 9. [开工清单与近期任务](docs/13_开工清单与近期任务.md) — **本周任务**
 10. [总体工作计划](docs/14_总体工作计划.md) — **到 2027-06 的排期**
-11. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
-12. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
-13. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
-14. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
+11. [基础补齐清单](docs/16_基础补齐清单.md) — **只学过数电+信号与系统先读**
+12. [前置知识与学习路线](docs/03_前置知识与学习路线.md)
+13. [前置知识补全：从数电到 Verilog 实战](docs/05_前置知识补全_从数电到Verilog实战.md)
+14. [协作纪录与技能提炼规范](docs/06_协作纪录与技能提炼规范.md)
+15. [新手使用 Agent 教程](docs/07_新手使用Agent教程.md)
 
 **接口契约**：[docs/contracts/](docs/contracts/README.md)
 **项目管理**：[plan.md](plan.md) · [AGENTS.md](AGENTS.md)
