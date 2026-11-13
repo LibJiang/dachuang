@@ -4,7 +4,7 @@
 
 - 日期：2026-11-13
 - 成员：江力博
-- 分支：main（工作区修改，未提交）
+- 分支：feat/sys-jianglibo（已提交并推送）
 - 工作阶段：P0 板级 bring-up 准备
 
 ## 本次目标
@@ -28,7 +28,7 @@
 - `git diff --check`：通过。
 - `node tools/build-offline-docs.mjs`：通过（32 篇文档）。
 - 相对链接检查：`missing 0`。
-- 未运行 Vivado：环境/板卡/官方 XDC 未就绪。
+- 未运行 Vivado：板卡实物和 RTL 线 smoke RTL 未就绪（XDC 已就绪）。
 
 ## 未完成 / 阻塞
 
@@ -37,7 +37,7 @@
 - [x] 完整 master XDC 已下载并核对（受 EULA/版权约束，未 vendor 进仓库）。
 - [ ] 借到 AC701 实物，确认下载线/电源/串口。
 - [ ] 跑通 Vivado 综合/实现/bit 下载/UART smoke。
-- [ ] 未 commit/push，等用户确认。
+- [x] 已提交并推送 `feat/sys-jianglibo`。
 
 ## 说明
 
