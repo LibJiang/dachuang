@@ -39,6 +39,8 @@ make && ./kat_check
 
 ```powershell
 .\sim\run.ps1 rtl tb_counter
+.\sim\run.ps1 rtl tb_board_smoke
+.\sim\run.ps1 rtl tb_smoke_axi_lite_regs
 ```
 
 ### 命令行（WSL / Linux，Vivado 在 PATH 中）
@@ -60,6 +62,9 @@ source sim/scripts/run_xsim.tcl
 - 顶层：`tb_*`；
 - 源文件：`src/**/*.v`（最多 3 层）+ `sim/*.v`；
 - part：`xc7z020clg400-1`（PYNQ-Z2）。
+
+其中两个 board smoke tb 只做行为仿真，不代表 AC701 管脚、时钟或 bitstream 已验证；
+正式上板工程必须使用 AC701 器件与已确认的官方 XDC。
 
 ### 通过标准
 
