@@ -67,7 +67,7 @@ flowchart LR
 - **软件**：官方 HQC 参考实现 + C/C++ 黄金 + KAT，用于逐字节对拍；
 - **仿真**：Vivado xsim 系统级仿真 + 官方 KAT；
 - **FPGA**：**全功能跑通（板端 KAT 100/100 + KeyGen/Encap/Decap）** + 综合/实现 PPA；
-- **ASIC**：55nm 主、28nm 对比、90nm 兜底；只做综合 + area/power/fmax，**不跑 P&R、不流片**。
+- **ASIC**：55nm 主、28nm 对比、90nm 兜底；前端综合 + area/power/fmax 必做；后端 P&R/STA 可选，有余力再做；不流片。
 
 > 组内 SOCC 2023 已经做了 **FPGA 完整 HQC-128 KEM**。
 > 我们的差异化不靠“重复造稀疏乘法/完整 KEM”，而靠 **完整 RTL + ASIC 评估 + 设计空间 + 开源可复现**。
@@ -119,14 +119,14 @@ flowchart LR
 
 | 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| `sha3_shared` | **三阶段共享 SHAKE256/Keccak**、XOF、PRNG | 骆弈宾 |
-| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | 骆弈宾 |
+| `sha3_shared` | **三阶段共享 SHAKE256/Keccak**、XOF、PRNG | 骆奕宾 |
+| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | 骆奕宾 |
 | `poly_mult` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | 曹子墨 |
 | `sparse_qc_mult` | dense×sparse 核心实现（主方案） | 曹子墨 |
 | `rs_codec` | RS 编码 + **ePIBM** 解码 | 曹子墨 |
 | `rm_codec` | RM 编码 + FHT 解码 + 重复合并 | 曹子墨 |
-| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较** | 骆弈宾 |
-| `axi_mmio` | 寄存器/BRAM/DMA | 骆弈宾 |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较** | 骆奕宾 |
+| `axi_mmio` | 寄存器/BRAM/DMA | 骆奕宾 |
 | `tb/golden` | KAT、C 黄金、系统仿真、PPA、恒定时间评估 | 江力博/房煦然 |
 
 ### 4.1 IP 工程化交付
@@ -206,10 +206,10 @@ flowchart LR
 |:---|:---|:---|:---|
 | **江力博** | 项目负责人 / FPGA 与 IP 集成 | 进度、Vivado 平台 owner、FPGA bring-up、系统仿真、PPA、repo/CI、**IP 打包/release**、ASIC 前端与可选后端协调 | **不写 RTL**；总览项目 |
 | **房煦然** | 与老师对接 / 需求与验证 | 需求/范围、架构/契约、老师沟通、**C 黄金 + KAT/验证 + 恒定时间评估**、原创性/差异表、**IP 验收/文档**、答辩 | **不写 RTL**；总览项目 |
-| **骆弈宾** | RTL-A：协议/SHAKE/控制 | **三阶段共享 SHAKE256**、固定重量采样、KEM/PKE 控制、FO/隐式拒绝、**常数时间比较** | RTL 主力 |
+| **骆奕宾** | RTL-A：协议/SHAKE/控制 | **三阶段共享 SHAKE256**、固定重量采样、KEM/PKE 控制、FO/隐式拒绝、**常数时间比较** | RTL 主力 |
 | **曹子墨** | RTL-B：算术/解码 | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例）、RS ePIBM、RM FHT、重复合并 | RTL 主力 |
 
-- **RTL 线由骆弈宾、曹子墨负责；江力博不写 RTL**，负责 FPGA bring-up / Vivado / 系统集成 / PPA；
+- **RTL 线由骆奕宾、曹子墨负责；江力博不写 RTL**，负责 FPGA bring-up / Vivado / 系统集成 / PPA；
 - 房煦然不写 RTL，负责 **C 黄金 + KAT/验证 + 恒定时间评估** + 需求/契约/验收；
 - 当前只有江力博的机器有 Vivado：他周五统一跑 xsim + OOC 综合；其他人用 iverilog/Verilator 预检；
 - 详细任务与验收见 [docs/13_开工清单与近期任务.md](docs/13_开工清单与近期任务.md)。

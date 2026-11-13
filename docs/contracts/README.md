@@ -11,10 +11,10 @@
 | [sparse_qc_mult_v0.md](sparse_qc_mult_v0.md) | dense×sparse 核心实现（主方案） | 草案（主方案） | 曹子墨 |
 | [rs_codec_v0.md](rs_codec_v0.md) | RS(46,16) + ePIBM、字节序、向量 | 草案 | 曹子墨 |
 | [rm_decoder_v0.md](rm_decoder_v0.md) | RM(1,7) FHT、重复合并、软/硬判决 | 草案 | 曹子墨 |
-| [sha3_v0.md](sha3_v0.md) | **三阶段共享 SHAKE256/Keccak** | 草案 | 骆弈宾 |
-| [hqc_kem_v0.md](hqc_kem_v0.md) | KEM API、软硬划分、KAT、恒定时间 | 草案 | 骆弈宾 |
-| [axi_mmio_v0.md](axi_mmio_v0.md) | AXI4-Lite 寄存器/内存映射 | 草案 | 骆弈宾 |
-| `sampler_v0.md` | 固定重量采样接口 | 待建 | 骆弈宾 |
+| [sha3_v0.md](sha3_v0.md) | **三阶段共享 SHAKE256/Keccak** | 草案 | 骆奕宾 |
+| [hqc_kem_v0.md](hqc_kem_v0.md) | KEM API、软硬划分、KAT、恒定时间 | 草案 | 骆奕宾 |
+| [axi_mmio_v0.md](axi_mmio_v0.md) | AXI4-Lite 寄存器/内存映射 | 草案 | 骆奕宾 |
+| `sampler_v0.md` | 固定重量采样接口 | 待建 | 骆奕宾 |
 
 ## 冻结流程
 

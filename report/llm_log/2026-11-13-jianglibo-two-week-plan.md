@@ -15,8 +15,8 @@
 
 - 拉取 `main`，确认 `Already up to date`，工作区无未提交修改。
 - 新增 `docs/18_两周开工计划_2026-11-13.md`：今晚任务、契约冻结顺序、两周按人排期、外部数据清单、验收与禁止事项。
-- 明确 smoke：**smoke RTL 由 RTL 线写**——骆弈宾写 `smoke_top`/UART/AXI-Lite，曹子墨写计数器/LED/时钟复位；江力博只做 Vivado 工程/约束/XDC/下载/评审，不写 smoke Verilog；房煦然收日志。
-- 明确契约：骆弈宾写 `sha3_v0`/`sampler_v0`/`hqc_kem_v0`/`axi_mmio_v0`；曹子墨写 `poly_mult_v0`/`sparse_qc_mult_v0`/`rs_codec_v0`/`rm_decoder_v0`；房煦然评审冻结；江力博 review AXI/IP。
+- 明确 smoke：**smoke RTL 由 RTL 线写**——骆奕宾写 `smoke_top`/UART/AXI-Lite，曹子墨写计数器/LED/时钟复位；江力博只做 Vivado 工程/约束/XDC/下载/评审，不写 smoke Verilog；房煦然收日志。
+- 明确契约：骆奕宾写 `sha3_v0`/`sampler_v0`/`hqc_kem_v0`/`axi_mmio_v0`；曹子墨写 `poly_mult_v0`/`sparse_qc_mult_v0`/`rs_codec_v0`/`rm_decoder_v0`；房煦然评审冻结；江力博 review AXI/IP。
 - 外部数据只问：AC701 实物借用、ASIC 前端工具/PDK/VPN、验收口径、SOCC 2023 资料；AC701 XDC/原理图/引脚、Vivado、HQC 规范/KAT 均自行解决。
 - `docs/13` 加入两周计划入口；`tools/build-offline-docs.mjs` 加入 `docs/18`。
 
