@@ -34,6 +34,8 @@
 | 2026-11-09 | jianglibo | 初始架构窗口对账与发布 | P0/P1 | [纪录](2026-11-09-arch-window-sync-and-publish.md) | 待复核 |
 | 2026-11-09 | jianglibo | 协作纪录迁移与半年计划同步 | P0/P1 | [纪录](2026-11-09-jianglibo-plan-half-year-sync.md) | 待复核 |
 | 2026-11-12 | jianglibo | dense×sparse 方向定稿与全仓库对齐 | P0 | [纪录](2026-11-12-jianglibo-dense-sparse-alignment.md) | 待复核 |
+| 2026-11-12 | jianglibo | IP 工程优先与 ASIC 后端可选 | P0 | [纪录](2026-11-12-jianglibo-ip-engineering-first.md) | 待复核 |
+| 2026-11-13 | jianglibo | 两周开工计划与今晚分工 | P0 | [纪录](2026-11-13-jianglibo-two-week-plan.md) | 待复核 |
 
 ## 提炼记录
 
