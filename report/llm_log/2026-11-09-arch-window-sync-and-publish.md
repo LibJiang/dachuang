@@ -48,7 +48,7 @@
 - 稀疏乘法 `a·b = ⊕_{p∈supp(b)} (a <<< p) mod (X^n−1)`，为什么复杂度从 $O(n^2)$ 降到 $O(wn)$；
 - 为什么 SOCC 2023 的稀疏乘法/FHT/ePIBM/完整 FPGA KEM 不能当原创；
 - 为什么从「PS+PL 混合」切到「完整 RTL + FPGA/ASIC」；
-- FPGA 硬目标与 ASIC 只做 55/28/90nm 综合、不流片的边界。
+- FPGA 硬目标与 ASIC 55/28/90nm 前端综合、后端可选、不流片的边界。
 
 暂不能讲清 / 需要补：
 

@@ -4,7 +4,7 @@
 > 目标：HQC-128 的 **全 RTL** KeyGen / Encaps / Decaps + FO + 隐式拒绝；
 > 官方 KAT 100/100；系统仿真 0 mismatch；**FPGA 板端全功能跑通**。
 >
-> 主题：完整 RTL → **FPGA 全功能跑通（硬目标）** + ASIC 综合评估（55/28/90nm，条件阶段；不流片）。
+> 主题：完整 RTL → **FPGA 全功能跑通（硬目标）** + ASIC 前端综合评估（55/28/90nm，条件阶段；后端可选；不流片）。
 > 参考实现：`third_party/hqc/`（public domain，commit `06567cc`）。
 
 ---
@@ -27,14 +27,14 @@ decaps  : start_decaps(sk, ct) -> ss[32B]
 
 | 模块 | 职责 | 负责人 |
 |:---|:---|:---|
-| `sha3_shared` | **三阶段共享 SHAKE256/Keccak**、XOF、PRNG | 骆弈宾 |
-| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | 骆弈宾 |
+| `sha3_shared` | **三阶段共享 SHAKE256/Keccak**、XOF、PRNG | 骆奕宾 |
+| `sampler` | 固定重量采样（w/w_r/w_e），常数时间 | 骆奕宾 |
 | `poly_mult` | **低延迟 dense×sparse 主方案**（Karatsuba/Toom-Cook 仅为示例） | 曹子墨 |
 | `sparse_qc_mult` | dense×sparse 核心实现（主方案） | 曹子墨 |
 | `rs_codec` | RS 编码 + **ePIBM** 解码 | 曹子墨 |
 | `rm_codec` | RM 编码 + FHT + 重复合并 | 曹子墨 |
-| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较** | 骆弈宾 |
-| `axi_mmio` | 寄存器/BRAM/DMA | 骆弈宾 |
+| `hqc_kem_top` | KeyGen/Encaps/Decaps、FO、隐式拒绝、**常数时间比较** | 骆奕宾 |
+| `axi_mmio` | 寄存器/BRAM/DMA | 骆奕宾 |
 
 > **恒定时间是必做项**：FO 重加密比较、采样、解码、稀疏访问不得有秘密相关分支/提前返回；评估口径见 `docs/09`。
 
@@ -70,7 +70,7 @@ decaps  : start_decaps(sk, ct) -> ss[32B]
 | 指标 | 口径 |
 |:---|:---|
 | FPGA | LUT/FF/BRAM/DSP/Fmax/cycles；Vivado 综合/实现 |
-| ASIC（条件） | area/power/fmax；综合，不跑 P&R |
+| ASIC（条件） | area/power/fmax；综合，后端 P&R/STA 可选 |
 | 延迟 | KeyGen/Encaps/Decaps 的 cycles 与 ms |
 | 对比 | SOCC 2023（FPGA-only）作为基线；不承诺超过 |
 
@@ -94,4 +94,4 @@ decaps  : start_decaps(sk, ct) -> ss[32B]
 - [ ] ASIC 工具（DC/Genus/OpenROAD）；PDK 已确认 55/28/90nm
 - [ ] HQC-192/256 是否进 V0（默认不进）
 - [x] FPGA 板端全功能跑通：**硬目标**（老师已确认）；主 AC701 XC7A200T
-- [x] ASIC 不流片，只做综合评估
+- [x] ASIC 不流片，前端综合评估必做；后端 P&R/STA 可选
