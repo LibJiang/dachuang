@@ -62,10 +62,26 @@
 
 ---
 
-## 5. 未决问题
+## 5. 冻结前评审清单
 
-- [ ] 数据窗口大小与 BRAM 容量
-- [ ] `param_set` 是否允许运行时切换
-- [ ] `error` 的具体编码
-- [ ] 中断号与 PYNQ 侧驱动
-- [ ] 是否保留 `Decaps` 的 op（V0 可能由 PS 直接调度）
+- [ ] **主机路径**：AC701 没有 PS；明确 V0 由 UART、自研/JTAG-to-AXI master，
+  还是外部 PCIe/调试桥驱动 AXI4-Lite。不得继续使用“PYNQ 侧”表述。
+- [ ] **完整 KEM 操作**：`op=0/1/2` 固定为 KeyGen/Encaps/Decaps；
+  Decaps 是完整 RTL 硬目标的一部分，不能作为 V0 可选项。模块单测 op 是否保留需另定。
+- [ ] **参数字段**：V0 只做 HQC-128；决定删除 `param_set`，或规定其只能读回 0、非 0 写入报错。
+- [ ] **数据窗口容量**：当前 4 KiB 窗口小于 4433 B 密文；决定采用扩大窗口、分页，
+  或多个独立 BRAM 窗口，并写清 pk/sk/ct/ss 的容量和地址边界。
+- [ ] **基地址语义**：`DENSE/POS/PROD_BASE` 只适合乘法器单测；决定改成通用 buffer 描述符，
+  或为 KEM 与模块单测分别定义地址表，避免同一寄存器承担两种语义。
+- [ ] **字节映射**：明确地址单位、32-bit word 内 byte lane、非整字尾部、WSTRB、
+  越界和非对齐访问的 AXI 响应，并与官方 KAT 字节序逐字节对拍。
+- [ ] **AXI 协议行为**：AW/W 独立到达、B/R 背压、允许的 outstanding 数量、
+  unmapped/misaligned 的 `SLVERR` 以及 `start while busy` 的确定行为。
+- [ ] **状态语义**：统一单周期 `done` 与软件可轮询的 sticky 状态；明确
+  `STATUS.done/error`、`IRQ_STATUS`、重新 `start` 和 W1C 的清除优先级。
+- [ ] **错误编码**：增加独立错误码寄存器并区分协议、越界、非法 op、busy 写入和内部超时；
+  Decaps 密文无效不得映射成可区分的外部错误。
+- [ ] **超时所有权**：明确超时在 Host、AXI wrapper 还是 KEM controller 中实现，
+  并规定超时后输出缓冲区和 `ss` 的安全状态。
+- [ ] **smoke 隔离**：今晚的板级 smoke 寄存器图使用独立 `board_smoke_v0` 契约，
+  不把临时 ID/SCRATCH 寄存器直接并入最终 KEM 地址空间。

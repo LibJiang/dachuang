@@ -14,7 +14,8 @@
 | [sha3_v0.md](sha3_v0.md) | **三阶段共享 SHAKE256/Keccak** | 草案 | 骆奕宾 |
 | [hqc_kem_v0.md](hqc_kem_v0.md) | KEM API、软硬划分、KAT、恒定时间 | 草案 | 骆奕宾 |
 | [axi_mmio_v0.md](axi_mmio_v0.md) | AXI4-Lite 寄存器/内存映射 | 草案 | 骆奕宾 |
-| `sampler_v0.md` | 固定重量采样接口 | 待建 | 骆奕宾 |
+| [sampler_v0.md](sampler_v0.md) | 官方固定重量采样接口与随机流顺序 | 草案 | 骆奕宾 |
+| [board_smoke_v0.md](board_smoke_v0.md) | AC701 时钟/复位、LED、UART、AXI smoke | 草案 | 骆奕宾 |
 
 ## 冻结流程
 
