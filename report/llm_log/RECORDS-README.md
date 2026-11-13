@@ -37,6 +37,7 @@
 | 2026-11-12 | jianglibo | IP 工程优先与 ASIC 后端可选 | P0 | [纪录](2026-11-12-jianglibo-ip-engineering-first.md) | 待复核 |
 | 2026-11-13 | jianglibo | 两周开工计划与今晚分工 | P0 | [纪录](2026-11-13-jianglibo-two-week-plan.md) | 待复核 |
 | 2026-11-13 | jianglibo | 统一姓名与 ASIC 后端口径 | P0 | [纪录](2026-11-13-jianglibo-unify-name-and-asic-wording.md) | 待复核 |
+| 2026-11-13 | jianglibo | AC701 smoke 工程骨架 | P0 | [纪录](2026-11-13-jianglibo-ac701-smoke-skeleton.md) | 待复核 |
 
 ## 提炼记录
 

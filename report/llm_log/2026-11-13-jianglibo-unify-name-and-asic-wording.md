@@ -9,22 +9,22 @@
 
 ## 本次目标
 
-- 仓库内“骆弈宾”统一改为“骆奕宾”；
+- 仓库内成员姓名统一为“骆奕宾”（旧写法不再使用）；
 - 全仓库 ASIC 口径统一为：**前端综合必做；后端 P&R/STA/DRC/LVS 可选，有余力再做；不流片**；
 - 不改桌面文献综述 PDF/docx。
 
 ## 做了什么
 
-- 全仓库姓名统一：`骆弈宾` → `骆奕宾`。
+- 全仓库成员姓名统一为“骆奕宾”。
 - 统一 ASIC 口径，覆盖 `README`、`plan`、`AGENTS`、`docs/00/08/09/10/11/12/13/14/16/17/18`、`asic/README`、`docs/contracts` 及相关协作纪录。
-- 清理旧口径：不再出现“不跑 P&R、不碰 P&R、P&R/tapeout 明确不做”。
+- 清理旧 ASIC 口径中的否定表述，统一为“前端必做、后端可选、不流片”。
 
 ## 验证
 
 - `git diff --check`：无 whitespace error。
-- `node tools/build-offline-docs.mjs`：32 篇文档，386.2 KB。
+- `node tools/build-offline-docs.mjs`：32 篇文档，386.6 KB。
 - Python 相对链接检查：`missing 0`。
-- 全文扫描：`骆弈宾`、`不跑 P&R`、`不碰 P&R`、`P&R/tapeout 明确不做` 均为 0。
+- 全文扫描旧姓名与旧 P&R 否定表述：均为 0。
 
 ## 说明
 

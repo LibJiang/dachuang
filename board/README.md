@@ -5,6 +5,7 @@
 > 侧信道后续：**ChipWhisperer CW305（苏州 3F-18）**。
 > **老师已确认：不用流片；FPGA 全功能跑通是硬目标。**
 > 当前状态：**未开始**；P0 先借 1–2 天做 smoke test，P3 连续借用 4–6 周。
+> **板级 smoke 入口：[board/smoke/README.md](smoke/README.md)**；smoke RTL 由 RTL 线写，江力博只做 Vivado 工程/约束/XDC/下载/评审。
 
 ---
 
@@ -60,7 +61,8 @@
 
 ## 待补
 
-- [ ] AC701 官方 master XDC / 原理图 / 用户手册
+- [x] AC701 smoke 最小 XDC（官方 board file 提取：`board/smoke/constraints/ac701_smoke.xdc`）
+- [ ] AC701 完整 master XDC / 原理图 / 用户手册（如需 DDR/HDMI/FMC 等外设）
 - [ ] 板卡借用登记（AC701 P3 窗口）
 - [ ] UART/JTAG 主机脚本
 - [ ] 时钟频率与引脚
