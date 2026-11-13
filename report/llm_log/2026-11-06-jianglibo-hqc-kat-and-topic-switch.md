@@ -42,7 +42,7 @@
 ## 关键决策与理解
 
 - 组内 SOCC 2023 已做 FPGA 完整 KEM；完整 RTL 本身不是原创，**ASIC 评估**才是差异点。
-- ASIC 只做综合 + area/power/fmax，不跑 P&R、不流片；工具/PDK 未确认。
+- ASIC 前端综合 + area/power/fmax 必做；后端 P&R/STA 可选，不流片；工具/PDK 未确认。
 - 先完整 RTL + KAT；FPGA 可选，ASIC 条件。
 - 官方代码 public domain，可以 vendor；但不要把第三方代码说成原创。
 

@@ -87,11 +87,11 @@
 
 ### 5. HQC 专项约束
 
-- **先完整 RTL 协议，再 FPGA 全功能跑通**：FPGA 是硬目标；ASIC 只做综合、**不流片**。
+- **先完整 RTL 协议，再 FPGA 全功能跑通**：FPGA 是硬目标；ASIC 前端综合必做，后端 P&R/STA 可选；**不流片**。
 - **“完整”的判定**：全 RTL KeyGen/Encaps/Decaps；官方 KAT 100/100；**FPGA 板端 KAT 100/100**；系统仿真 0 mismatch。
 - **老师已确认**：不流片；PDK 55/28/90nm；FPGA 全功能跑通是硬目标。
 - **老师选题基线**：低延迟 dense×sparse 乘法（Karatsuba/Toom-Cook 仅示例，不是硬性要求）、ePIBM/FHT、SHAKE 三阶段复用、恒定时间；这些是要求/基线，不能写成我们的原创。
-- **ASIC 节点**：55nm 主 / 28nm 对比 / 90nm 兜底；只做综合 + area/power/fmax。
+- **ASIC 节点**：55nm 主 / 28nm 对比 / 90nm 兜底；前端综合 + area/power/fmax；后端可选。
 - **参数集**：V0 只做 HQC-128（官方 HQC-1）；HQC-192/256 后续，不得为此牺牲正确性。
 - **参考实现只读**：`third_party/hqc/` 是官方 public domain 代码，不得改算法；本地修改用 patch 记录。
 - **数据表示**：稠密多项式按 bit 存储，`bit i = X^i` 的系数；稀疏多项式存位置列表（升序、无重复）。
@@ -129,7 +129,7 @@
 
 - 不以 Icarus 替代 xsim 作为最终 RTL 验证依据；Icarus 只用于快速 lint。
 - 所有仿真日志放 `data/logs/`，FPGA/ASIC 报告放 `data/evidence/`。
-- 先完成完整 RTL + KAT，再完成 FPGA 全功能跑通；ASIC 是后置/条件阶段，且不流片。
+- 先完成完整 RTL + KAT，再完成 FPGA 全功能跑通；ASIC 是后置/条件阶段：前端综合必做，后端可选；不流片。
 
 ---
 
