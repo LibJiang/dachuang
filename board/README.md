@@ -62,6 +62,7 @@
 ## 待补
 
 - [x] AC701 smoke 最小 XDC（官方 board file 提取：`board/smoke/constraints/ac701_smoke.xdc`）
+- [x] smoke 仿真 tb/脚本（`board/smoke/tb/`、`board/smoke/scripts/run_sim.tcl`）
 - [ ] AC701 完整 master XDC / 原理图 / 用户手册（如需 DDR/HDMI/FMC 等外设）
 - [ ] 板卡借用登记（AC701 P3 窗口）
 - [ ] UART/JTAG 主机脚本

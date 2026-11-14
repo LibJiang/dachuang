@@ -65,7 +65,19 @@ if {[file exists $xdc_file]} {
 }
 
 set_property top smoke_top [current_fileset]
+
+set tb_file [file join $smoke_dir tb tb_smoke_top.v]
+if {[file exists $tb_file]} {
+    add_files -fileset sim_1 -norecurse $tb_file
+    set_property top tb_smoke_top [get_filesets sim_1]
+    set_property top_lib xil_defaultlib [get_filesets sim_1]
+    puts "INFO: testbench added: $tb_file"
+} else {
+    puts "WARNING: testbench not found: $tb_file"
+}
+
 update_compile_order -fileset sources_1
+update_compile_order -fileset sim_1
 
 puts "OK: project created at $proj_dir"
-puts "OK: next: synth_design / impl / write_bitstream, then program.tcl"
+puts "OK: next: run_sim.tcl, then build_bitstream.tcl, then program.tcl"

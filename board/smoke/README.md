@@ -24,9 +24,15 @@ board/smoke/
 ├─ README.md                 # 本文件
 ├─ filelist.f                # RTL 线提供文件的清单
 ├─ constraints/
-│  └─ README.md              # 官方 XDC 获取说明；不猜引脚
+│  ├─ README.md              # 官方 XDC 获取说明；不猜引脚
+│  └─ ac701_smoke.xdc        # smoke 最小约束
+├─ tb/
+│  ├─ README.md              # tb 约定
+│  └─ tb_smoke_top.v         # smoke 自检 tb
 └─ scripts/
    ├─ create_project.tcl     # Vivado 工程创建
+   ├─ run_sim.tcl            # xsim 仿真
+   ├─ build_bitstream.tcl    # synth/impl/bit
    └─ program.tcl            # bit 下载模板
 ```
 
@@ -80,10 +86,11 @@ board/smoke/rtl/axi_lite_smoke.v
 ## 4. 通过标准
 
 - [ ] Vivado 工程能创建；
+- [ ] xsim 仿真输出 `PASS: smoke UART SMOKE_PASS + LED`；
 - [ ] 综合/实现/生成 bitstream 无 error；
 - [ ] JTAG 能识别 AC701；
 - [ ] bit 下载成功；
-- [ ] UART 输出 `SMOKE_PASS`（或回环成功）；
+- [ ] UART 输出 `SMOKE_PASS`（115200 8N1，空闲高）；
 - [ ] LED/计数器可见；
 - [ ] 日志存入 `data/logs/YYYY-MM-DD-board-smoke/`。
 
@@ -107,11 +114,17 @@ board/smoke/rtl/axi_lite_smoke.v
 # 1. 创建工程（Vivado batch）
 vivado -mode batch -source board/smoke/scripts/create_project.tcl
 
-# 2. 打开工程，综合/实现/生成 bitstream（或用 GUI）
-# 3. 下载（bit 路径按实际替换）
-vivado -mode batch -source board/smoke/scripts/program.tcl -tclargs build/vivado/smoke/smoke.bit
+# 2. 仿真（不接板）
+vivado -mode batch -source board/smoke/scripts/run_sim.tcl
+
+# 3. 综合/实现/生成 bitstream
+vivado -mode batch -source board/smoke/scripts/build_bitstream.tcl
+
+# 4. 下载（bit 路径按实际替换）
+vivado -mode batch -source board/smoke/scripts/program.tcl -tclargs build/vivado/smoke/smoke.runs/impl_1/smoke_top.bit
 ```
 
+> UART 约定：115200 8N1、空闲高，发送 ASCII `SMOKE_PASS`。
 > `create_project.tcl` 会在 RTL 文件缺失时直接报错，这是有意的：smoke RTL 由 RTL 线提供，江力博不代写。
 
 ---
