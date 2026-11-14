@@ -105,6 +105,10 @@ bash sim/run.sh lint tb_counter
 
 ## 五、约定
 
+SHA3 单元验证的测试矩阵与待评审项见 [tb_sha3 验证计划](SHA3_TEST_PLAN.md)；当前只有计划，尚无可运行 tb。
+
+SHA3 单元验证的测试矩阵与待评审项见 [tb_sha3 验证计划](SHA3_TEST_PLAN.md)；当前只有计划，尚无可运行 tb。
+
 - testbench 必须自检：打印 `PASS/FAIL + checks`，不靠人工看波形；
 - 每个 tb 至少覆盖：复位、边界、随机、错误注入（如适用）；
 - 随机种子固定并打印；

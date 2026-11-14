@@ -10,7 +10,8 @@
 
 | 模块 | 职责 | 是否接板级引脚 |
 |:---|:---|:---|
-| `smoke_top` | 时钟/复位、计数器、LED、UART 回显 | 是 |
+| `ac701_smoke_top` | AC701 差分时钟/复位转换，实例化通用 top | 是 |
+| `smoke_top` | 单时钟、计数器、LED、UART 回显 | 经板级 wrapper |
 | `uart_rx` / `uart_tx` | 参数化 8N1 收发 | 仅经 `smoke_top` |
 | `smoke_axi_lite_regs` | 独立的最小 AXI4-Lite 寄存器从机 | 否 |
 | JTAG-to-AXI/调试桥 | 后续集成层，不在本契约实现 | 否 |
@@ -101,7 +102,10 @@ output wire [3:0] led_o
 
 ## 6. 冻结前未决项
 
-- [ ] 江力博确认 AC701 时钟输入、复位极性、UART/LED 管脚和 XDC 文件路径。
+- [x] 已导入江分支 `7ff56af` 的时钟/复位和引脚资料，路径为
+  `board/smoke/constraints/ac701_smoke.xdc`；按队友记录与官方资料核对，尚未实板验证。
+- [x] AC701 wrapper 使用 `sys_clk_p/n`、高有效 `rst`、`uart_rxd/txd`、`led[3:0]`，
+  通过 IBUFDS/BUFG 输入 200 MHz；内部 `CLK_HZ=200000000`、`BAUD=115200`。
 - [ ] 确认 `CLK_HZ`、`BAUD` 与 UART 分频误差上限。
 - [ ] 曹子墨确认计数器对外端口、位宽和可用于 LED 的分频位。
 - [ ] 确认 AXI smoke 只做 xsim，还是接入选定的 JTAG-to-AXI/调试桥做板端访问。
@@ -110,3 +114,11 @@ output wire [3:0] led_o
 
 > 当前 RTL 是用户明确允许的板级平台探索性 spike；契约仍未冻结，且尚无 xsim PASS，
 > 不得作为正式实现或板端验收证据。
+
+## 7. 11-14 对齐状态
+
+- 工程 top 为 `src/soc/ac701_smoke_top.v`；通用模块与原 tb 仍使用 §2 的接口。
+- 板级 wrapper 依赖 Vivado UNISIM 原语；需要显式按 RESET 初始化，复位同步释放为两拍。
+- AXI smoke 仍是独立从机单测；板端访问桥、IRQ 与 KEM MMIO 均未接入。
+- 远端导入日志表明原有 RTL/tb 已通过 xvlog；xelab 生成 C 文件编译失败，尚无 xsim PASS。
+  新增 wrapper 不在该次编译覆盖范围内，需重新编译。

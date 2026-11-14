@@ -25,6 +25,8 @@
 
 | 日期 | 成员 | 主题 | 关联阶段 | 纪录 | 高质量 |
 |---|---|---|---|---|---|
+| 2026-11-14 | luoyibin | tb_sha3 验证计划 | P0/P1 | [纪录](2026-11-14-luoyibin-sha3-test-plan.md) | 待复核 |
+| 2026-11-14 | luoyibin | 队友分支与 smoke 接口对齐 | P0 | [纪录](2026-11-14-luoyibin-branch-alignment.md) | 待复核 |
 | 2026-11-06 | jianglibo | HQC 初始架构与仓库基线 | A/B/C/D | [纪录](2026-11-06-jianglibo-hqc-initial-architecture.md) | 待复核 |
 | 2026-11-06 | jianglibo | HQC 基线与稀疏乘法 baseline | A/B1 | [纪录](2026-11-06-jianglibo-hqc-baseline-and-sparse-mult.md) | 待复核 |
 | 2026-11-06 | jianglibo | HQC KAT 与主题切换 | A1 | [纪录](2026-11-06-jianglibo-hqc-kat-and-topic-switch.md) | 待复核 |

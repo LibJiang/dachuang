@@ -123,6 +123,8 @@ module sha3_shared #(
 
 ## 6. 验证
 
+详细用例、黄金来源、自检和待评审判据见 [tb_sha3 验证计划](../../sim/SHA3_TEST_PLAN.md)（未实现/未执行）。
+
 - `tb_sha3.v`：SHAKE256、SHA3-256、SHA3-512 官方向量及 HQC KAT 中的哈希/PRNG 输出；
 - 覆盖空输入、7/8/9 B、rate−1/rate/rate+1、多块输入、非 8 B 对齐输出、连续 XOF 停止和随机反压；
 - 三阶段调度顺序与无死锁（系统级 tb 接入后补）；
